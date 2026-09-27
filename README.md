@@ -1,6 +1,3 @@
-# **Note: The code is not yet public. Files will be released here in the next few days**
-
-
 # Diploid ClinVar tasks for GFMBench-API
 
 Zygosity-aware ClinVar benchmark tasks for
