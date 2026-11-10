@@ -1119,7 +1119,7 @@ def _fasta(path: str, pid: int) -> Any:
     return pysam.FastaFile(path)
 
 
-# Canonical allele priority (matches preprocess/CLAUDE.md):
+# Canonical allele priority (matches the encoder, preprocess/encoder/get_genome_sequence.py):
 # A(0) < C(1) < G(2) < T(3) < N(4) < -(5) < *(6).
 _ALLELE_PRIORITY = {"A": 0, "C": 1, "G": 2, "T": 3, "N": 4, "-": 5, "*": 6}
 
@@ -2856,7 +2856,7 @@ def plan_genome_milestones(
     this dataset. Without it, genome-N is a fraction of whatever corpus is
     mounted: a 20%-smaller (deduplicated) corpus over the same 2,560 genomes
     shrinks ``windows_per_genome`` by 20%, so genome-50 fires 20% early and the
-    row silently stops being comparable to every other row in RESULTS.md. Pin it
+    row silently stops being comparable to every other run's. Pin it
     to an arm's measured value (the scored ladder ran at 277.58) to make genome-N
     an absolute optimization budget across datasets and batch sizes.
 
@@ -6765,7 +6765,7 @@ def setup_model_and_tokenizer(
     # whether the unigram counts table resolved, and the bias-prior fallback.
     # A checkpoint with rare_token_recipe absent predates the fix and therefore
     # trained with the uniform-over-vocab MLM fill pool and no head-bias rarity
-    # prior — that is how historical runs are told apart (see TRAINING_GUIDE).
+    # prior — that is how historical runs are told apart.
     model.config.rare_token_recipe = {
         "version": RARE_TOKEN_RECIPE_VERSION,
         "unigram_counts_loaded": bool(token_freqs),
@@ -7251,8 +7251,8 @@ def parse_args() -> argparse.Namespace:
         "from this dataset. Default (None) keeps the historical behavior: "
         "genome-N is a fraction of whatever corpus is mounted, so a "
         "20%%-smaller deduplicated corpus over the same genomes fires genome-50 "
-        "20%% early and its row stops being comparable to the rest of "
-        "RESULTS.md. Every scored arm ran at 277.58 (eff-batch 640); pass that "
+        "20%% early and it stops being comparable to other runs. "
+        "Every scored arm ran at 277.58 (eff-batch 640); pass that "
         "to keep genome-N an absolute budget across datasets and batch sizes.",
     )
     p.add_argument("--no-eval", action="store_true")

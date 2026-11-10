@@ -877,7 +877,7 @@ def _drain_pool(pool: Pool, worker_args: Sequence[tuple], timeout_s: float) -> L
     ``apply_async`` + a bounded ``get`` per task instead of
     ``list(pool.imap_unordered(...))``: a task whose worker died (OOM kill,
     segfault) is never re-queued by ``multiprocessing.Pool`` and the latter
-    never returns (``HARDENING_PLAN.md`` §D). Here the wait for any one task
+    never returns. Here the wait for any one task
     is capped at *timeout_s*; a task that does not report by then is printed
     as ``[LOST]`` and left out, so ``_missing_samples`` marks it FAILED and
     the run ends instead of hanging.

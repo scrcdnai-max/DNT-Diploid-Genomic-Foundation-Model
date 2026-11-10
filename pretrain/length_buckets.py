@@ -27,8 +27,8 @@ padding. Power-of-two buckets were considered and rejected: 8 shapes instead of 
 but a flat ~25% waste (~78% efficiency).
 
 At ``--window-len <= BUCKET_STEP`` every window buckets to the full window length,
-so this module is a no-op and the fixed-length path is reproduced exactly. That is
-what makes the v7 equivalence check in the plan meaningful.
+so this module is a no-op and the fixed-length path is reproduced exactly, which is
+what makes a v7 run with and without bucketing comparable.
 """
 
 from __future__ import annotations

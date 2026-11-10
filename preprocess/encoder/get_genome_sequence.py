@@ -120,7 +120,7 @@ def _u1_to_str(a: np.ndarray) -> str:
     Python boxing of ``"".join(a)``. Output is byte-for-byte identical.
 
     Inherits the little-endian assumption already present in ``view("<U1")``
-    elsewhere in this module (see preprocess/CLAUDE.md "Known Issues #1").
+    elsewhere in this module.
     """
     n = a.shape[0]
     if n == 0:

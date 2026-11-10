@@ -1996,7 +1996,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
                 # with NOT ONE line of output until it finished. From outside it
                 # is indistinguishable from the finalization deadlock this same
                 # command hit the day before. Any loop that can run for hours
-                # must say so while it runs -- see MONITOR.md.
+                # must say so while it runs.
                 print(f"[DEDUP] {split}: pre-seeding the live table from "
                       f"{n_seed:,} existing shard(s), "
                       f"{seed_bytes / 1e12:.2f} TB, {n_seed_workers} workers "
@@ -2376,7 +2376,7 @@ _DEDUP_MIN_CAPACITY = 1 << 20
 _SHM_PREFIX = ".diploid_assemble_"
 _DISK_TEMP_SUFFIX = "_dedup_temp"   # <output>.parent/.<split>_dedup_temp
 
-# Split-completion marker (HARDENING_PLAN.md §A4). `dataset_info.json` is NOT a
+# Split-completion marker. `dataset_info.json` is NOT a
 # completion signal: `save_to_disk(num_proc=…)` writes it incrementally, so a
 # crash mid-save leaves a plausible-looking partial output behind. This marker is
 # ours, written atomically as the LAST act of a split, and is the only thing the
@@ -2888,7 +2888,7 @@ def _sweep_orphan_disk_dirs(output_parent: Path,
 
 
 # ---------------------------------------------------------------------------
-# Split-level resume + partial-output safety  (HARDENING_PLAN.md §A4, §A5)
+# Split-level resume + partial-output safety
 #
 # The 2026-09-03 incident lost a 4h26m assemble at Step 5 and, because assemble
 # had no resume of any kind, the retry redid hashing (1,699 s), dedup (245 s) and
@@ -2906,7 +2906,7 @@ def _digest_files(files: List[Path], *, with_rows: Optional[List[int]] = None) -
     run minutes apart from each other and from this host, so an
     mtime in a fingerprint would invalidate the cache at random. Content hashing
     is not an option either: the train shard set is 9.7 TB, and hashing it is the
-    "invisible 2.5 h" mistake the ledger already records. (name, size, rows) is
+    mistake that once cost an invisible 2.5 h. (name, size, rows) is
     what the Step-1 footer scan produces for free.
     """
     h = hashlib.sha256()
@@ -3324,7 +3324,7 @@ def _process_split_streaming(
     them in the assembled ``provenance.json``.
 
     A split whose output is already marked complete for exactly these inputs is
-    skipped entirely (HARDENING_PLAN.md §A4), so a test-split failure never
+    skipped entirely, so a test-split failure never
     redoes the train split.  ``route_label`` identifies the on-the-fly
     conversion route in that check — two different ``--target-version`` runs into
     the same output must not look interchangeable.
@@ -3377,11 +3377,11 @@ def _process_split_streaming(
     print(f"  Found {len(parquet_files)} shards, {total_rows:,} total rows "
           f"(scanned in {t_rowcount:.1f}s)", flush=True)
 
-    # ── Split-level resume (HARDENING_PLAN.md §A4) ───────────────────────
+    # ── Split-level resume ───────────────────────────────────────────────
     # Placed here because the fingerprint needs Step 1's row counts, and before
     # Step 2 because everything from here on is the 4-6 h this exists to skip.
-    # The decision is printed either way: a silent resume is how the ledger's
-    # "invisible 2.5 h" entry happened.
+    # The decision is printed either way: a silent resume once cost an
+    # invisible 2.5 h.
     split_fingerprint = _build_split_fingerprint(
         shard_dir, output_path, parquet_files, file_row_counts,
         max_shard_size=max_shard_size, seed=seed, route_label=route_label,
@@ -3731,7 +3731,7 @@ def _process_split_streaming(
 
         # save_to_disk does NOT clean its destination, so anything a crashed
         # run left here would be MERGED with this run's output — stale
-        # data-*.arrow files from a longer run and all (HARDENING_PLAN.md §A5).
+        # data-*.arrow files from a longer run and all.
         # Runs on every run, not only resumes.
         _freed = _clear_partial_output(output_path, shard_dir)
         if _freed:
@@ -3757,7 +3757,7 @@ def _process_split_streaming(
         n_final = len(ds)
         del ds
 
-        # ── The one exact invariant this pipeline has (HARDENING_PLAN.md §A9.3)
+        # ── The one exact invariant this pipeline has
         # Step 4 writes exactly the kept rows; load_dataset and shuffle both
         # preserve cardinality.  The stats dict has always recorded both numbers
         # and never compared them — this assertion would have caught the
@@ -3804,7 +3804,7 @@ def _process_split_streaming(
             "save_num_proc": save_num_proc,
         }
 
-        # ── Split-completion marker, written LAST (HARDENING_PLAN.md §A4) ──
+        # ── Split-completion marker, written LAST ──
         # `dataset_info.json` is not this signal: save_to_disk writes it
         # incrementally under num_proc, so a crash mid-save leaves a
         # plausible-looking partial.  This file exists only when the split
@@ -4230,7 +4230,7 @@ def cmd_assemble(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Startup preflight for lazily-resolved dependencies  (HARDENING_PLAN.md §B)
+# Startup preflight for lazily-resolved dependencies
 #
 # 2026-09-03: a second host's bare `uv run` deleted and recreated a venv on
 # shared NFS storage while an assemble was 4h26m in. The process survived for another
@@ -4253,7 +4253,7 @@ def cmd_assemble(args: argparse.Namespace) -> None:
 #   C  One SPAWN round trip, assemble only. `save_to_disk(num_proc=16)` uses a
 #      spawn pool that re-execs sys.executable ~40 h into the BioMe run, and
 #      NOTHING else in the run exercises that path. This is the rung that catches
-#      the version-mismatched `.venv/bin/python3` the ledger warns about.
+#      a version-mismatched `.venv/bin/python3`.
 #
 # Honest limits: rung A cannot save the spawn pool (it re-execs; no in-process
 # trick survives that), and the primary control is host-local venvs, already
@@ -4330,7 +4330,7 @@ def _verify_venv_fingerprint(where: str) -> None:
     """Re-stat the recorded venv (microseconds) and raise if it moved.
 
     A no-op when no fingerprint was recorded — direct callers of
-    `_process_split_streaming` (the ledger's 157 s repro recipe) bypass
+    `_process_split_streaming` (e.g. a short repro script) bypass
     `main()`, and that is correct.
     """
     if _VENV_FINGERPRINT is None:
@@ -4444,7 +4444,7 @@ def _preflight_imports(args: argparse.Namespace) -> None:
                 f"  sys.prefix     = {sys.prefix}\n"
                 f"save_to_disk(num_proc>1) spawns workers that re-exec that "
                 f"interpreter; a version-mismatched .venv/bin/python3 breaks it "
-                f"HOURS into the run (DECISION_LEDGER.md 2026-09-03). Recreate "
+                f"HOURS into the run. Recreate "
                 f"the venv with the interpreter this host actually uses: "
                 f"that interpreter. Use --preflight fast "
                 f"to skip this check."

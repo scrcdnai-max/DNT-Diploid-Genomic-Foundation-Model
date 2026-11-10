@@ -106,7 +106,7 @@ def load_token_table(tokens_path: Path) -> TokenTable:
     meta_by_pair: dict = {}
 
     # strip=False and the eager ord() keep this reader's pre-reorg behaviour on padded
-    # lines and multi-character symbols (post-reorg follow-up in preprocess/docs/REORG_PLAN_REV1.md);
+    # lines and multi-character symbols (a pending follow-up);
     # after that fix this becomes an adapter over tokens.load_token_table.
     for pair, order, symbol, uni in tokens.iter_token_rows(tokens_path, strip=False):
         if uni is None:

@@ -2,10 +2,8 @@
 """Build the embedded dataset for the "hg38 Per-Gene Division" artifact.
 
 That artifact is a self-contained HTML page (chromosome dropdown, scroll-to-zoom
-genome track view) published via Claude's Artifact tool from an ephemeral
-scratchpad, so its *page code* does not live in this repo. What does need to
-survive across sessions — and what this script owns — is turning the real BED
-inputs into the compact JS data blob the page embeds:
+genome track view) whose page code does not live in this repo. This script owns
+turning the real BED inputs into the compact JS data blob the page embeds:
 
     const GENOME_DATA = {"sizes": {...}, "gaps": {...}, "genes": {...},
                          "stats": {...}};

@@ -7,7 +7,7 @@ set -euo pipefail
 # These versions are the v4/v6/v7 ENCODINGS over a different REGION UNIVERSE —
 # the deCODE EUR LD blocks (1,361 gap-free blocks, 2.806 Gbp) instead of the
 # canonical hg38_pretrain_canonical_expanded.bed (140,099 regions, 0.943 Gbp).
-# See preprocess/regions/ld_blocks/PROVENANCE.md and huggingface_dataset/versions.py.
+# See preprocess/regions/ld_blocks/raw/README.md and huggingface_dataset/versions.py.
 #
 # Usage:
 #   run_ldb_dataset.sh v7-ldb                    # generate + assemble
@@ -221,4 +221,3 @@ echo ""
 echo "=== SUCCESS: ${VERSION} dataset at ${ASM_DIR} ==="
 echo "Assembled size: $(du -sh "${ASM_DIR}" 2>/dev/null | cut -f1)"
 echo "=== Finished at $(date '+%F %T') (total $((ELAPSED / 3600))h $(((ELAPSED % 3600) / 60))m $((ELAPSED % 60))s) ==="
-echo "Remember to log this run in preprocess/regions/ld_blocks/PROVENANCE.md."

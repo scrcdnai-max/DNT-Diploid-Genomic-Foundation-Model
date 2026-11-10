@@ -13,7 +13,7 @@ set -uo pipefail
 # file count matches the source's. concat_persample_bcf.sh trusts sentinels, so
 # a part directory that is present-but-incomplete must never carry one -- that
 # is precisely the "non-empty dir means done" failure that produced short
-# per-sample BCFs on 2026-09-01 (see regions/nested_genome_division/DECISION_LEDGER.md).
+# per-sample BCFs on 2026-09-01.
 # Resume follows the same rule: a destination with a sentinel AND a matching
 # count is skipped; anything else is re-synced.
 #

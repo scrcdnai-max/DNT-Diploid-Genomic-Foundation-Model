@@ -6,7 +6,7 @@ fields. Validation stays with each caller, because their policies differ on purp
 the encoder and :func:`parse_bed_regions` raise, ``create_dataset.load_bed_regions``
 warns and skips, ``nested_genome_division.sources.read_bed`` skips silently and
 ``validate_division.read_division_bed`` raises with its own message. Pre-reorg quirks are
-kept until the post-reorg follow-ups (``preprocess/docs/REORG_PLAN_REV1.md`` §Follow-up list): each caller
+kept until a pending follow-up: each caller
 decides gzip itself (``compressed``), and :func:`parse_bed_regions` still treats only a
 ``#`` in column 1 as a comment (``comment_at_col0_only``).
 

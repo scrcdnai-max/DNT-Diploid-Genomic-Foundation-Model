@@ -21,8 +21,7 @@ set -euo pipefail
 # A "2-sample" smoke with the BioMe split file set therefore writes 2 + 2,320
 # shards (observed 2026-10-05). TEST_SAMPLES= (set but empty) disables the split.
 #
-# WHAT v10 IS (plan: ~/.claude/plans/i-want-to-add-vectorized-grove.md; decisions:
-# ../DECISION_LEDGER.md 2026-10-05): two haploid `ACGTN^{}` strings per
+# WHAT v10 IS (decided 2026-10-05): two haploid `ACGTN^{}` strings per
 # (sample × gene) straight from the BCF phasing, `sample_id` + GENCODE `gene_id`
 # + strand on every row, NO dedup / shuffle / assemble, one zstd Parquet per
 # patient, an HG38_REF pseudo-sample per split weighted by "samples with no row
@@ -481,7 +480,6 @@ if [[ "${FOREGROUND}" != "1" ]]; then
   heartbeat ... tail ${SD}/heartbeat.tsv
   output ...... ${OUT_DIR}
 Re-running this script after a crash resumes (finished shards are skipped).
-Log the run in ${HFD}/DECISION_LEDGER.md.
 EOF
     exit 0
 fi
@@ -634,5 +632,3 @@ echo "Size:        $(du -sh "${OUT_DIR}" 2>/dev/null | cut -f1)"
 echo "Region set:  ${BED_REGION_SET:-<unlabelled>} (${BED_ROWS} intervals from ${BED})"
 echo "Format:      ${FORMAT} (${COMPRESSION}-${COMPRESSION_LEVEL}); no dedup / shuffle / assemble by design"
 echo "=== Finished at $(date '+%F %T') (total $((ELAPSED / 3600))h $(((ELAPSED % 3600) / 60))m $((ELAPSED % 60))s) ==="
-echo ""
-echo "Log this run in ${HFD}/DECISION_LEDGER.md."

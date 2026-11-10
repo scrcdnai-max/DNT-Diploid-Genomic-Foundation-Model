@@ -16,10 +16,7 @@ set -uo pipefail
 #   NOTIFY_CMD     invoked as: $NOTIFY_CMD <STATE> <STATUS_DIR>   (optional)
 #   FOREGROUND=1   do not re-exec detached (used by the self-test)
 #
-# THE CONTRACT THIS IMPLEMENTS IS preprocess/huggingface_dataset/runners/MONITOR.md.
-# Read it before changing anything here; if the two disagree, MONITOR.md wins.
-#
-# Design points that are load-bearing (all from MONITOR.md):
+# Design points that are load-bearing:
 #  * outcome is DURABLE ON DISK, never only in a watcher's memory (the
 #    2026-09-03 assemble crash sat undetected 6.5h because the watcher died);
 #  * STALLED needs TWO signals -- log silence AND ~zero group CPU delta -- on
@@ -60,7 +57,7 @@ if [[ -z "${_SUPERVISED_DETACHED:-}" && -z "${FOREGROUND:-}" ]]; then
     exit 0
 fi
 
-# ── Atomic single-word writes (MONITOR.md section 2) ──────────────────────
+# ── Atomic single-word writes ─────────────────────────────────────────────
 # Written via a same-directory temp + mv, so a concurrent reader never sees a
 # half-written value.
 put() {  # put <filename> <content>
@@ -87,7 +84,7 @@ put state RUNNING
 CHILD=$!
 
 # The child shares this process group, so the documented recovery gesture
-# `kill -TERM -<pgid>` (MONITOR.md section 7) hits the supervisor too. Without a
+# `kill -TERM -<pgid>` hits the supervisor too. Without a
 # trap that leaves `state` stuck at RUNNING forever -- the exact "outcome lives
 # only in a watcher" failure this script exists to prevent. Forward the signal,
 # then fall through to the terminal-state write below.
@@ -108,7 +105,7 @@ fi
 # that made the 2026-09-02 deadlock hard to see.
 # ONE `ps` snapshot per heartbeat, filtered by process group. Bash cannot walk
 # /proc cheaply here -- measured 9s per sample on this 256-core box with ~3,000
-# processes, which blows the overhead budget (MONITOR.md section 5) and starves
+# processes, which blows the heartbeat's overhead budget and starves
 # the heartbeat cadence. `ps -e` does the same scan in C in ~70ms.
 # `cputimes` is CPU seconds (utime+stime) for the whole process, so the delta
 # across an interval is real work done -- unlike the %CPU column, which is a
@@ -170,7 +167,7 @@ while kill -0 "$CHILD" 2>/dev/null; do
                   'BEGIN{ printf "%.1f", d/s*100 }')
     rss_gb=$(awk -v k="$rss_kb" 'BEGIN{ printf "%.1f", k/1048576 }')
 
-    # Two signals, two consecutive samples (MONITOR.md section 4).
+    # Two signals, two consecutive samples.
     idle=$(awk -v c="$cpu_pct" -v e="$CPU_EPSILON" 'BEGIN{print (c<e)?1:0}')
     if [[ "$quiet_s" -ge "$STALL_LOG_S" && "$idle" == "1" ]]; then
         stall_hits=$((stall_hits + 1))
@@ -193,7 +190,7 @@ done
 # ── Terminal state ────────────────────────────────────────────────────────
 wait "$CHILD"; rc=$?
 # exit_code BEFORE state: a reader that sees a terminal state may rely on
-# exit_code existing (MONITOR.md section 2).
+# exit_code existing.
 put exit_code "$rc"
 if [[ "$rc" -eq 0 ]]; then STATE=DONE; else STATE=FAILED; fi
 put state "$STATE"

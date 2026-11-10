@@ -72,7 +72,7 @@ because that ambiguity is unresolvable after the fact. It is NOT analogous to
 ``--representation``/``--force-unphased``: those change how each record is
 encoded and are recoverable from the data, whereas the region set changes which
 records exist at all. Only region-BOUND presets constrain ``--bed``; the stock
-presets stay unbound so "stock version, custom BED" (README_allgenes.md) keeps
+presets stay unbound so "stock version, custom BED" runs keep
 working.
 
 A reserved future variant (NOT yet shipped) would instead keep phase by replacing
@@ -96,12 +96,12 @@ from preprocess.huggingface_dataset.annotations import MarkerPolicy  # noqa: E40
 
 # Sentinel region set: the preset places no constraint on ``--bed``. Every
 # preset shipped before 2026-07-26 is unbound, which is what keeps
-# "stock version + custom BED" runs (README_allgenes.md) working.
+# "stock version + custom BED" runs working.
 UNBOUND_REGION_SET = "unbound"
 
 # The deCODE EUR LD-block region set — 1,361 gap-free blocks over chr1-22
 # (2.806 Gbp), normalized from ld_blocks/raw/deCODE_EUR_LD_blocks.bed by
-# preprocess/regions/build_ld_block_bed.py. See preprocess/regions/ld_blocks/PROVENANCE.md.
+# preprocess/regions/build_ld_block_bed.py. See preprocess/regions/ld_blocks/raw/README.md.
 LDB_REGION_SET = "ldb_decode_eur"
 LDB_BED_HINT = "preprocess/regions/ld_blocks_eur_grch38.bed"
 LDB_BED_SHA256 = "d9f271cae20cbc0251e3ccf1912daaf8e7280b58fa571c1a57fb4d4c31cfb0ea"

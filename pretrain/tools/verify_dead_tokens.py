@@ -13,8 +13,7 @@ notice, so the check has to happen before the run starts.
 
 Exit 1 if any symbol the filter would drop is actually present. Sampling is by
 whole shards, which is sound here because shards are not locus-partitioned
-(2,561 samples and 127,779 distinct loci appear in shard 0 alone) -- see
-SEMANTIC_DEDUP.md.
+(2,561 samples and 127,779 distinct loci appear in shard 0 alone).
 """
 
 from __future__ import annotations

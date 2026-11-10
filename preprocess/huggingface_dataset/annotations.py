@@ -232,8 +232,7 @@ class CADDAnnotation(Annotation):
     ``cadd_phred`` holds the higher of the two haplotypes' phreds
     (each NaN if that haplotype is reference or absent from the indel CADD
     file). Anchor-only placement: exactly one supervised slot per variant —
-    the codepoint where ``seq_ref_idx == anchor_offset AND seq_var_idx == j``
-    (see the plan for the full rationale).
+    the codepoint where ``seq_ref_idx == anchor_offset AND seq_var_idx == j``.
 
     Source artifacts (whole-genome Arrow under ``arrow_dir``, produced by
     ``poc_a2_convert_raw_cadd.py``):
