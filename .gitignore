@@ -9,3 +9,8 @@ output/
 *.parquet
 *.fa
 *.fa.fai
+
+# reference genome (supply locally, see README) and Hub staging output
+preprocess/hg38.2bit
+hf_cards/staging/
+wandb/

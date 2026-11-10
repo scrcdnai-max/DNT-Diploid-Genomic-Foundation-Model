@@ -1,0 +1,33 @@
+# Versions of the environment the code was developed and run in (Python 3.13).
+# Install torch for your CUDA first if the default wheel does not match it.
+
+# model and training
+torch==2.14.1
+transformers==5.17.0
+tokenizers==0.23.2
+safetensors==0.8.0
+accelerate==1.15.0
+huggingface-hub==1.33.0
+datasets==5.0.1
+wandb==0.30.0          # train.py --report-to defaults to wandb; pass --report-to none to skip
+
+# data
+numpy==2.5.3
+pandas==3.0.6
+polars==1.44.2
+pyarrow==25.0.1
+orjson==3.12.0
+xxhash==4.0.1
+psutil==7.2.2
+
+# genomics I/O
+pysam==0.24.1
+cyvcf2==0.34.0
+pyfaidx==0.9.0.4
+py2bit==1.0.1
+pyBigWig==0.3.26
+
+# optional
+# peft                               train.py --peft-main lora
+# kernels==0.17.1, flash-attn        FlashAttention patch in pretrain/ntv3_attention_patch.py
+# lxml                               faster ClinVar XML parsing in benchmarks/datasets/

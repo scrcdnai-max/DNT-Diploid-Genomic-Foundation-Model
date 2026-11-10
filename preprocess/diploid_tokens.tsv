@@ -1,0 +1,85 @@
+# version 0.5
+# 2026-02-04
+# Single-character representation of diploid content
+# symmetric -> Homozygous for a given allele at this position
+# unphased -> Heterozygous for a given allele at this position, but phasing is not given
+#             (legacy label: "unordered" — still accepted, emits DeprecationWarning)
+# phased   -> Heterozygous for a given allele at this position, taking phasing into consideration
+#             (legacy label: "ordered" — still accepted, emits DeprecationWarning)
+# single   -> (proposed) representation for hemizygous (single X or Y)
+# Pair	Order	Symbol	Unicode
+AA	symmetric	A	U+0041
+CC	symmetric	C	U+0043
+GG	symmetric	G	U+0047
+TT	symmetric	T	U+0054
+--	symmetric	-	U+002D
+NN	symmetric	N	U+004E
+**	symmetric	*	U+002A
+AC	unphased	Ą	U+0104
+CA	unphased	Ą	U+0104
+AG	unphased	Ⱥ	U+023A
+GA	unphased	Ⱥ	U+023A
+AT	unphased	Ⱦ	U+023E
+TA	unphased	Ⱦ	U+023E
+A-	unphased	Å	U+00C5
+-A	unphased	Å	U+00C5
+CG	unphased	Ĉ	U+0108
+GC	unphased	Ĉ	U+0108
+CT	unphased	Ȼ	U+023B
+TC	unphased	Ȼ	U+023B
+C-	unphased	Č	U+010C
+-C	unphased	Č	U+010C
+GT	unphased	Ĝ	U+011C
+TG	unphased	Ĝ	U+011C
+G-	unphased	Ģ	U+0122
+-G	unphased	Ģ	U+0122
+T-	unphased	Ţ	U+0162
+-T	unphased	Ţ	U+0162
+A*	unphased	Å	U+00C5
+*A	unphased	Å	U+00C5
+C*	unphased	Č	U+010C
+*C	unphased	Č	U+010C
+G*	unphased	Ģ	U+0122
+*G	unphased	Ģ	U+0122
+T*	unphased	Ţ	U+0162
+*T	unphased	Ţ	U+0162
+AC	phased	Á	U+00C1
+CA	phased	Ç	U+00C7
+AG	phased	Ã	U+00C3
+GA	phased	Ğ	U+011E
+AT	phased	Ă	U+0102
+TA	phased	Ť	U+0164
+A-	phased	Æ	U+00C6
+-A	phased	Д	U+0414
+CG	phased	Ƈ	U+0187
+GC	phased	Ǥ	U+01E4
+CT	phased	Ć	U+0106
+TC	phased	Ƭ	U+01AC
+C-	phased	Ċ	U+010A
+-C	phased	Ш	U+0428
+GT	phased	Ǧ	U+01E6
+TG	phased	г	U+0433
+G-	phased	Ɠ	U+0193
+-G	phased	К	U+041A
+T-	phased	Ț	U+021A
+-T	phased	Т	U+0422
+A*	phased	Æ	U+00C6
+*A	phased	Д	U+0414
+C*	phased	Ċ	U+010A
+*C	phased	Ш	U+0428
+G*	phased	Ɠ	U+0193
+*G	phased	К	U+041A
+T*	phased	Ț	U+021A
+*T	phased	Т	U+0422
+A	single	a	U+0061
+C	single	c	U+0063
+G	single	g	U+0067
+T	single	t	U+0074
+-	single	.	U+002E
+N	single	n	U+006E
+*	single	·	U+00B7
+<SNP>	meta	^	U+005E
+<INDEL_span_start>	meta	{	U+007B
+<INDEL_span_end>	meta	}	U+007D
+<DIR_FWD>	meta	‹	U+2039
+<DIR_REV>	meta	›	U+203A

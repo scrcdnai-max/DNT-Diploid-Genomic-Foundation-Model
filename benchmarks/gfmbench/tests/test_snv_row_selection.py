@@ -24,7 +24,7 @@ rows the extractor would skip, and every window comes back attached to its own r
 
 Run from a GFMBench-API checkout that has the diploid files installed:
 
-    PYTHONPATH=. pytest /path/to/this/repo/tests
+    PYTHONPATH=. pytest /path/to/this/repo/benchmarks/gfmbench/tests
 """
 import random
 

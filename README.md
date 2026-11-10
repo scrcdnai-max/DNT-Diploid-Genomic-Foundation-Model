@@ -1,115 +1,88 @@
-# Diploid ClinVar tasks for GFMBench-API
+# DNT: Diploid Genomic Foundation Model
 
-Zygosity-aware ClinVar benchmark tasks for
-[GFMBench-API](https://github.com/NVIDIA/GFMBench-api).
+Code for DNT, a genomic language model that reads a person's **two haplotypes as one sequence**.
+Each position is a single token drawn from a diploid vocabulary: homozygous and heterozygous
+genotypes, phase direction and indel spans are all part of the input. Zygosity is visible to the
+model, so a heterozygous and a homozygous carrier of the same variant are no longer the same input.
 
-Standard variant-effect benchmarks score a haploid alt sequence against a haploid reference,
-so a heterozygous and a homozygous carrier of the same variant are indistinguishable. These
-tasks encode both haplotypes into a single diploid sequence — one glyph per position, drawn
-from a diploid token table — so zygosity is part of the model input, and a recessive
-pathogenic variant can be labelled `het = 0` (carrier) / `hom = 1` (affected).
+DNT is continually pretrained from InstaDeep's
+[Nucleotide Transformer v3](https://huggingface.co/InstaDeepAI) on phased genomes from the 1000
+Genomes high-coverage release, with the vocabulary expanded from 11 to the diploid token set.
+The released models are on the Hugging Face Hub under
+[`scrc-dnai`](https://huggingface.co/scrc-dnai).
 
-## Contents
+## Repository layout
 
 | Path | What |
 |---|---|
-| `gfmbench_api/tasks/concrete/clinvar_diploid_task.py` | `DiploidClinvarSupervisedTask` — supervised variant-effect classification |
-| `gfmbench_api/tasks/concrete/clinvar_diploid_indel_task.py` | `DiploidIndelClinvarTask` — zero-shot indel variant effect |
-| `gfmbench_api/utils/diploidutils.py` | diploid encoding/decoding, SNV and indel window extraction, run-mode dataset wrappers |
-| `usage_examples/run_diploid_benchmark.py` | runner with the diploid / haploid / biallelic mode fan-out |
-| `usage_examples/trainers/linear_probe.py` | embedding probe fitters (`SNVEmbeddingProbeFitter`, `SequenceEmbeddingProbeFitter`) |
-| `usage_examples/trainers/__init__.py` | upstream's file with the probe-fitter exports added |
+| [`preprocess/`](preprocess/README.md) | the diploid encoder (two haplotypes → one token string) and the pretraining-corpus builder: per-sample BCF × region BED → Hugging Face Parquet dataset |
+| [`pretrain/`](pretrain/README.md) | continued pretraining on NTv3 with vocabulary expansion (`train.py`) and its modules |
+| `embedding/cohort/rows.py` | row ↔ HG38 coordinate helpers used by `pretrain/v2_input.py` |
+| [`hf_cards/`](hf_cards/README.md) | the shipped `diploid_encode.py`, the model cards and the Hub publishing tools |
+| [`benchmarks/gfmbench/`](benchmarks/gfmbench/README.md) | zygosity-aware ClinVar tasks for [GFMBench-API](https://github.com/NVIDIA/GFMBench-api) |
+| [`benchmarks/datasets/`](benchmarks/datasets/README.md) | builders for the benchmark datasets (ClinVar diploid SNV / indel, 1000 Genomes MHC ancestry) |
 
-The layout mirrors the GFMBench-API tree so the files drop straight into a checkout. Package
-`__init__.py` files are deliberately absent: nothing here replaces an upstream module except
-`usage_examples/trainers/__init__.py`, which adds two exports.
+## Pipeline
 
-## Tasks
-
-**`diploid_clinvar_supervised_variant_effect`** — `BaseGFMSupervisedVariantEffectTask`.
-Binary pathogenicity (single label, two classes) over variant/reference diploid sequence
-pairs, fine-tuned or linear-probed. Train/test splits come from the published dataset, whose
-test split is chromosomes 19–22. Metrics: accuracy, MCC, AUROC, AUPRC.
-
-Zygosity logic behind the labels:
-
-| Variant | het | hom |
-|---|---|---|
-| Benign | 0 | 0 |
-| Pathogenic, dominant | 1 | 1 |
-| Pathogenic, recessive | 0 (carrier) | 1 (affected) |
-
-**`clinvar_diploid_indel`** — `BaseGFMZeroShotGeneralIndelTask`. Zero-shot pathogenicity for
-insertions and deletions, scored by the zero-shot metrics of the base class (sum-probability
-LLR, embedding cosine/L2 AUROC and AUPRC).
-
-## Data
-
-Both tasks download their own data; nothing needs staging.
-
-| Source | Used for |
-|---|---|
-| [`scrc-dnai/clinvar-diploid-snv`](https://huggingface.co/datasets/scrc-dnai/clinvar-diploid-snv) | SNV task, `train` + `test` splits |
-| [`scrc-dnai/clinvar-diploid-indel`](https://huggingface.co/datasets/scrc-dnai/clinvar-diploid-indel) | indel task, `test` split |
-| hg38 (UCSC) | reference windows, fetched on first use into `<root_data_path>/reference_genome/` |
-
-Each task reads a locally staged `diploid_tokens.tsv` when one exists
-(`<root_data_path>/clinvar_zygosity/` for SNV, `<root_data_path>/diploid_clean/` for indel)
-and otherwise downloads the table published alongside the data. Local-first is deliberate:
-the table defines the vocabulary the sequences are encoded with and must match the one the
-model was trained on, so a machine that already has a table keeps producing results
-comparable with its earlier runs.
+1. **Encode and build the corpus** — `preprocess/`: render each sample's phased genotypes over the
+   pretraining regions against GRCh38, one diploid token per position, and assemble a sharded
+   Parquet dataset with a pedigree-aware train/test split.
+2. **Pretrain** — `pretrain/train.py`: expand the NTv3 vocabulary, warm up the new embedding rows
+   with the backbone frozen, then continue pretraining with masked language modelling and the
+   optional phase objectives (CPL, SMP).
+3. **Evaluate** — `benchmarks/`: build the diploid ClinVar datasets and run them through
+   GFMBench-API in diploid, haploid and biallelic modes.
+4. **Use a released model** — `hf_cards/diploid_encode.py` turns two haplotypes into model input;
+   every model card has a runnable quickstart.
 
 ## Install
 
-```bash
-./install.sh /path/to/GFMBench-api
-```
-
-Copies `gfmbench_api/` and `usage_examples/` into the checkout. A `PYTHONPATH` overlay cannot
-work here — `gfmbench_api` is a regular package, so Python resolves it to one directory and
-will not merge two.
-
-## Run
+Python 3.13 is what the code was developed and run on.
 
 ```bash
-cd /path/to/GFMBench-api
-python usage_examples/run_diploid_benchmark.py --help
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Diploid-capable tasks run in three modes, selected with `--modes`:
+`torch` must match your CUDA. `flash-attn` / `kernels` are optional and only used when
+`pretrain/ntv3_attention_patch.py` is asked to patch in FlashAttention.
 
-- `diploid` — the task's native encoding, both haplotypes in one sequence;
-- `haploid` — one sample per row: the variant-bearing haplotype against the reference haplotype;
-- `biallelic` — the two alleles of the variant sequence against each other. Homozygous rows
-  give two identical alleles, so scores from this pair measure zygosity, not variant effect.
+Run everything from the repository root: modules import each other as `preprocess.…` and
+`pretrain.…`, and default data paths are resolved from the repository root.
 
-`--gap_policy` controls how indel alignment gaps are handled when decoding to haploid or
-biallelic: `drop` (default) emits real ungapped haplotypes of differing length, `keep`
-preserves column alignment at the cost of an untrained gap token.
+## Reference data you need to supply
 
-## Requirements
+Nothing large is committed. You need:
 
-Python ≥ 3.10 (GFMBench-API's floor), plus `datasets`, `huggingface_hub`, `pyfaidx`, `torch`,
-`pandas`, `numpy`, `scikit-learn`.
+| Input | Used by |
+|---|---|
+| GRCh38 as `preprocess/hg38.2bit` (UCSC; checksum in `preprocess/hg38.2bit.md5`) | encoder, dataset builder, `train.py --v2-input` |
+| 1000 Genomes high-coverage phased panel, per-chromosome BCFs | dataset builder |
+| UCSC phyloP 100-way bigWig and CADD v1.7 (optional per-base annotations) | dataset builder, `--version v7`/`v8` with annotations |
+| GENCODE v50 GTF, UCSC gap table, ENCODE blacklist v2, hg38 chrom sizes | only to rebuild the TSS–TES region BED |
 
-## Tests
+Shell runners and a few CLI defaults point at the authors' cluster paths; every one of them can
+be overridden by a flag or an environment variable (see each script's header).
 
-```bash
-cd /path/to/GFMBench-api      # after install.sh
-PYTHONPATH=. pytest /path/to/this/repo/tests
-```
+## Licence
 
-The tests skip themselves when `gfmbench_api` is not importable.
-
-## License
-
-Apache-2.0, matching GFMBench-API. Files authored here carry SPDX headers and per-file
-third-party URL notices; `usage_examples/trainers/__init__.py` keeps NVIDIA's header, being
-an upstream file with two added exports. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-for data sources.
+Code: Apache-2.0 ([`LICENSE`](LICENSE), [`NOTICE`](NOTICE)). Model weights are released separately on the Hub
+under a research-only licence inherited from NTv3 ([`hf_cards/LICENSE`](hf_cards/LICENSE)).
+Third-party data: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Citation
+
+```bibtex
+@article{leib2026dnt,
+  title   = {DNT: Diploid Genomic Foundation Model},
+  author  = {Leib, Guy and Zinger, Tal and Ofer, Dan and Kellerman, Raizy and Nayshool, Omri and others},
+  journal = {bioRxiv},
+  year    = {2026},
+  doi     = {10.64898/2026.09.05.749576}
+}
+```
+
+The benchmark tasks build on GFMBench-API:
 
 ```bibtex
 @article{larey2026gfmbench,

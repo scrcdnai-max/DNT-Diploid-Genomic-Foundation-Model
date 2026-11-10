@@ -1,0 +1,34 @@
+Research-only licence for the DNT diploid genomic language models
+Sheba Medical Center, 2026
+
+These weights were produced by continual pretraining of a Nucleotide Transformer v3
+checkpoint released by InstaDeep (https://huggingface.co/InstaDeepAI). They are a
+derivative of that model and inherit its terms. The base model is distributed under
+the InstaDeep Open Model Licence, Version 1.0:
+
+    https://huggingface.co/InstaDeepAI/NTv3_650M_post/blob/main/MODEL-LICENSE.md
+
+Accordingly, these weights and any outputs derived from them are made available
+for non-commercial research purposes only, on terms no more permissive than that
+licence. In particular:
+
+  - No commercial use. Use by, or on behalf of, a commercial entity, and any use
+    intended for commercial advantage or for a product or service offered for a
+    fee, requires a separate licence from InstaDeep.
+  - No provision of model outputs as a service.
+  - No training, distilling or otherwise deriving a commercial model from these
+    weights or their outputs.
+  - Redistribution of these weights, or of models derived from them, must carry
+    this notice and the same restrictions.
+
+Sheba Medical Center grants no rights beyond those it received from InstaDeep and
+makes no claim of ownership over the underlying Nucleotide Transformer v3 model.
+
+THE WEIGHTS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. They are research
+artefacts and are not intended for clinical diagnosis or any use affecting patient
+care.
+
+If you use these models, please cite:
+  Leib G., Zinger T., Ofer D., Kellerman R., Nayshool O., et al.
+  DNT: Diploid Genomic Foundation Model. bioRxiv 2026.09.05.749576.
+  https://doi.org/10.64898/2026.09.05.749576

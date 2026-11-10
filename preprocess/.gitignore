@@ -1,0 +1,10 @@
+# reference could be download or set as softlink
+__pycache__
+hg38.2bit
+output_dir
+
+# nested_genome_division: downloaded raw inputs + all generated BEDs/reports —
+# regenerate via build_division.py (see its README.md); only small
+# curated pilots/results are meant to be committed.
+regions/nested_genome_division/raw/
+regions/nested_genome_division/out/
