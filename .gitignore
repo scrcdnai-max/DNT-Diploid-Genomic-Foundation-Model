@@ -14,3 +14,7 @@ output/
 preprocess/hg38.2bit
 hf_cards/staging/
 wandb/
+
+# local data (DATA_ROOT default, OpenGenome2 replay, checkpoints)
+/data/
+/models/

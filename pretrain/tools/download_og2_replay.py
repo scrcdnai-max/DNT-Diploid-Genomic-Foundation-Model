@@ -46,7 +46,7 @@ REPO_ID = "arcinstitute/opengenome2"
 REVISION = "9a24315bdc54a9949f2d8e0eca6c718134815a11"
 ROOT = "json/pretraining_or_both_phases"
 SEED = 42
-DEFAULT_OUT = Path("/storage/users/ddofer/datasets/opengenome2")
+DEFAULT_OUT = Path("data/opengenome2")
 
 # source -> (usable-bp quota, bp per compressed byte).
 # Quotas are the dataset card's phase-1 composition (854B metagenomic, 405B eukaryotic

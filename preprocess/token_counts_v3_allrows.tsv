@@ -1,5 +1,5 @@
-# v2 input token counts: 5100 stored rows (345720028 tokens) of /storage/data/1kgenomes/diploid_hf_v7-tsstes/assembled/train,
-# shards [17, 641, 1090], read through pretrain/v2_input.py with markers removed, with the reference /storage/data/references_and_sources/genomes/GRCh38_dragen_headercompat/GRCh38_headercompat.fa. Markers count 1 (kept in the
+# v2 input token counts: 5100 stored rows (345720028 tokens) of <data>/diploid_hf_v7-tsstes/assembled/train,
+# shards [17, 641, 1090], read through pretrain/v2_input.py with markers removed, with the reference GRCh38_headercompat.fa. Markers count 1 (kept in the
 # vocabulary for the collator's drop). Written by pretrain/tools/make_v2_token_counts.py.
 pair	order	symbol	count
 AA	symmetric	A	100870541

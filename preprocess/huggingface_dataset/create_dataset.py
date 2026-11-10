@@ -83,8 +83,8 @@ Usage (diploid + annotations):
         --output   /data/diploid_hf_v7/ \\
         --version  v7 \\
         --workers  60 \\
-        --phylop-bw /opt/hpc/data/PhylopP/hg38.phyloP100way.bw \\
-        --cadd-arrow-dir /opt/hpc/data/CADD/full_arrow/
+        --phylop-bw <phylop>/hg38.phyloP100way.bw \\
+        --cadd-arrow-dir <cadd>/full_arrow/
 
 Usage (haploid):
     python -m preprocess.huggingface_dataset.create_dataset generate \\
@@ -1690,7 +1690,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
         if args.stale_age_hours is not None:
             warnings.warn(
                 "--stale-age-hours is ignored: an age cannot be read off an NFS "
-                "mtime (the /storage filer clock runs ahead of the host); "
+                "mtime (an NFS filer clock can run ahead of the host); "
                 "--clean-stale watches each claim for --stale-observe-seconds.",
                 DeprecationWarning, stacklevel=2)
         stale_dirs = [train_output]
@@ -2246,7 +2246,7 @@ _SAVE_TO_DISK_MAX_PROC = int(os.environ.get("DIPLOID_SAVE_MAX_PROC", "16"))
 # is the proxy: ParquetWriter appends a row group every batch (5000 records or
 # _MAX_BATCH_SEQ_BYTES, see write_shard_streaming) and _ClaimHeartbeat touches the
 # claim every 60 s, so a live .tmp's (size, mtime) keeps moving, while an
-# abandoned claim's is frozen at the moment its process died. Not age: /storage
+# abandoned claim's is frozen at the moment its process died. Not age: NFS
 # mtimes are filer-stamped and run ahead of the host clock. (Assemble's temp
 # dirs carry pid stamps instead — they are directories we own end-to-end, not
 # single-file claims handed between runs.)
@@ -2261,8 +2261,8 @@ def _clean_stale_tmp(dirs: List[Path], observe_s: float = _STALE_OBSERVE_S,
     passes, and only a byte-identical signature is debris. A live claim is
     heartbeated every ``_CLAIM_HEARTBEAT_S`` (and grows as batches land), so it
     cannot read unchanged across three beats. ``now - mtime`` is NOT usable here:
-    /storage mtimes are stamped by the filer, which runs minutes ahead of the
-    host (HARDENING_PLAN.md C1), so an age threshold was a silent no-op.
+    NFS mtimes are stamped by the filer, which can run minutes ahead of the
+    host, so an age threshold was a silent no-op.
     Finalized *.parquet files are never touched. Returns the number removed.
     ``sleep`` is injectable so tests do not wait.
     """
@@ -2902,8 +2902,8 @@ def _sweep_orphan_disk_dirs(output_parent: Path,
 def _digest_files(files: List[Path], *, with_rows: Optional[List[int]] = None) -> str:
     """sha256 over sorted ``name|size[|rows]`` lines — deliberately no mtime.
 
-    /storage is an NFS FlexGroup whose constituents stamp mtimes from clocks that
-    run minutes apart from each other and from this host (MONITOR.md §4), so an
+    On an NFS FlexGroup the constituents stamp mtimes from clocks that can
+    run minutes apart from each other and from this host, so an
     mtime in a fingerprint would invalidate the cache at random. Content hashing
     is not an option either: the train shard set is 9.7 TB, and hashing it is the
     "invisible 2.5 h" mistake the ledger already records. (name, size, rows) is
@@ -4232,8 +4232,8 @@ def cmd_assemble(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 # Startup preflight for lazily-resolved dependencies  (HARDENING_PLAN.md §B)
 #
-# 2026-09-03: a second host's bare `uv run` deleted and recreated the shared
-# /storage venv while an assemble was 4h26m in. The process survived for another
+# 2026-09-03: a second host's bare `uv run` deleted and recreated a venv on
+# shared NFS storage while an assemble was 4h26m in. The process survived for another
 # ~3 minutes on already-imported modules, then `datasets` built its pool and
 # `multiprocess.context.SimpleQueue` did `from .queues import SimpleQueue` — a
 # LAZY import — and the run died with `ModuleNotFoundError: No module named
@@ -4314,8 +4314,8 @@ def _venv_fingerprint() -> dict:
 def _path_ids(path: Path) -> Optional[List[int]]:
     """(st_dev, st_ino) as a JSON-friendly list, or None if it is gone.
 
-    Identity, not mtime: /storage mtimes come from clocks that disagree with this
-    host by up to 47 minutes (MONITOR.md §4). A venv that `uv` deleted and
+    Identity, not mtime: NFS mtimes can come from clocks that disagree with this
+    host by many minutes. A venv that `uv` deleted and
     recreated has the same path and a new inode, which is exactly what this
     catches.
     """
@@ -4351,8 +4351,8 @@ def _verify_venv_fingerprint(where: str) -> None:
         "judged the shared venv broken and recreated it, which kills every "
         "lazily-resolved import (multiprocess.queues) and the spawn pool "
         "save_to_disk re-execs. Fix: give every non-primary host its own venv "
-        "outside /storage — NEVER run `uv` from a second host without "
-        "UV_PROJECT_ENVIRONMENT (see preprocess/CLAUDE.md, 'Running Scripts')."
+        "outside the shared filesystem, and never let a package manager rebuild "
+        "an environment that a running job is using."
     )
 
 
@@ -4367,10 +4367,10 @@ def _import_or_die(name: str, why: str) -> None:
             f"  sys.executable = {sys.executable}\n"
             f"  original error = {exc}\n"
             f"This is checked at startup on purpose: {name!r} would otherwise be "
-            f"resolved hours into the run (see DECISION_LEDGER.md 2026-09-03, "
-            f"where a recreated venv killed an assemble 4h26m in). If the venv "
-            f"lives on /storage and another host ran `uv`, recreate it with the "
-            f"interpreter this host uses and set UV_PROJECT_ENVIRONMENT there."
+            f"resolved hours into the run (on 2026-09-03 a recreated venv killed an "
+            f"assemble 4h26m in). If the venv "
+            f"lives on a shared filesystem and another host rebuilt it, give this host "
+            f"its own environment."
         ) from exc
 
 
@@ -4446,7 +4446,7 @@ def _preflight_imports(args: argparse.Namespace) -> None:
                 f"interpreter; a version-mismatched .venv/bin/python3 breaks it "
                 f"HOURS into the run (DECISION_LEDGER.md 2026-09-03). Recreate "
                 f"the venv with the interpreter this host actually uses: "
-                f"`uv sync --python <that interpreter>`. Use --preflight fast "
+                f"that interpreter. Use --preflight fast "
                 f"to skip this check."
             ) from exc
         if got != 42:
@@ -4598,15 +4598,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     gen.add_argument("--phylop-bw", type=Path, default=None,
                      help="PhyloP 100-way vertebrate bigWig path. "
                           "Presence enables the phyloP column; absence omits it. "
-                          "No default — common value: "
-                          "/opt/hpc/data/PhylopP/hg38.phyloP100way.bw")
+                          "No default (UCSC hg38.phyloP100way.bw).")
     gen.add_argument("--cadd-arrow-dir", type=Path, default=None,
                      help="Directory of per-chrom CADD SNV + indel Arrow "
                           "shards produced by poc_a2_convert_raw_cadd.py "
                           "(cadd_snv_<chrom>.arrow and "
                           "cadd_indel_<chrom>.arrow). Presence enables the "
-                          "cadd_phred column. No default — common value: "
-                          "/opt/hpc/data/CADD/full_arrow/")
+                          "cadd_phred column. No default.")
     gen.add_argument("--preflight", choices=["full", "fast", "off"],
                      default="full",
                      help="Resolve every lazily-imported dependency at "

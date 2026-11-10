@@ -16,7 +16,7 @@ separate columns, which this tool does not rebuild.
 
     python -m preprocess.huggingface_dataset.tools.rebuild_cadd --split-dir <assembled>/train --out <dir> \\
         --bcf-dir <per-sample BCFs> --ref <hg38.2bit> --tokens preprocess/diploid_tokens.tsv \\
-        --cadd-arrow-dir /storage/data/CADD/full_arrow --version v7-tsstes --workers 64 [--keep-rows keep.npy]
+        --cadd-arrow-dir <cadd>/full_arrow --version v7-tsstes --workers 64 [--keep-rows keep.npy]
 """
 from __future__ import annotations
 

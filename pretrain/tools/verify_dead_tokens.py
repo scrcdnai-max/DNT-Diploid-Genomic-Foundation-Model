@@ -8,8 +8,8 @@ row is deleted, and from then on it silently tokenizes to ``<unk>`` -- corruptin
 exactly the variant positions the model exists to read. Nothing downstream would
 notice, so the check has to happen before the run starts.
 
-    uv run --no-sync python -m pretrain.tools.verify_dead_tokens \
-        --data /storage/data/1kgenomes/diploid_hf_v7/assembled/train
+    python -m pretrain.tools.verify_dead_tokens \
+        --data data/1kgenomes/diploid_hf_v7/assembled/train
 
 Exit 1 if any symbol the filter would drop is actually present. Sampling is by
 whole shards, which is sound here because shards are not locus-partitioned
@@ -37,7 +37,7 @@ from train import (
 )
 
 DEFAULT_TOKENS_TSV = REPO_ROOT / "preprocess" / "diploid_tokens.tsv"
-DEFAULT_DATA = Path("/storage/data/1kgenomes/diploid_hf_v7/assembled/train")
+DEFAULT_DATA = Path("data/1kgenomes/diploid_hf_v7/assembled/train")
 
 
 def _count_symbols(shard: Path, wanted: set[str], max_rows: int) -> Counter[str]:

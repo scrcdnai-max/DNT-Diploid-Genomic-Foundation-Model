@@ -17,7 +17,7 @@ shared sequence once per row.
 ``build_division.py`` calls :func:`validate` before writing, so a BED that
 reaches disk has already passed. The CLI re-checks a file after the fact:
 
-    uv run --no-sync python -m preprocess.regions.nested_genome_division.validate_division preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed   # from the repo root
+    python -m preprocess.regions.nested_genome_division.validate_division preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed   # from the repo root
 """
 
 from __future__ import annotations

@@ -23,7 +23,7 @@ training loop's eval cycle fits well under the user's 9-min cap with
 headroom).
 
 Usage:
-    uv run python pretrain/build_eval_small.py \\
+    python pretrain/build_eval_small.py \\
         --source /data/diploid_hf_v6/assembled/test \\
         --output /data/diploid_hf_v6/assembled/test_small_v6 \\
         --window-len 4096 \\

@@ -15,9 +15,9 @@ rows, which move the MLM softmax and nothing a downstream embedding probe reads)
 If those 704 barely moved, "no gain" is an LR artifact, not a result. The
 reference is the matched full-fine-tune bundle arm at the same milestone.
 
-    uv run --no-sync python -m pretrain.tools.verify_freeze \
-        --arm /storage/users/ddofer/models/100m_post_embfreeze \
-        --reference /storage/users/ddofer/models/100m_post_bundle_w2048
+    python -m pretrain.tools.verify_freeze \
+        --arm <models>/100m_post_embfreeze \
+        --reference <models>/100m_post_bundle_w2048
 
 Exit code 1 if any frozen tensor moved -- that is a failed experiment, not a
 warning.

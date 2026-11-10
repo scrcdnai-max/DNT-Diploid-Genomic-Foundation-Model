@@ -21,7 +21,7 @@ is why ``validate_division`` reports ``covered`` (distinct bases) separately fro
 ``total`` (sum of row lengths).
 
     # from the repo root
-    uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division \\
+    python -m preprocess.regions.nested_genome_division.build_division \\
         --out preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed
 
 **Annotated output** (``--annotated-out``, for the v10 haplotype-pair dataset):
@@ -34,7 +34,7 @@ the six BED fields into the Parquet, so adding an annotation later is "add a
 column here". The pinned ``hg38_tss_tes.bed`` is untouched — this is a new
 output file, byte-identical in columns 1-3 and strand.
 
-    uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division --out /dev/null \\
+    python -m preprocess.regions.nested_genome_division.build_division --out /dev/null \\
         --annotated-out preprocess/regions/nested_genome_division/hg38_tss_tes_v10.bed
 
 This file used to build a second, TAD-based division as well; that mode and its

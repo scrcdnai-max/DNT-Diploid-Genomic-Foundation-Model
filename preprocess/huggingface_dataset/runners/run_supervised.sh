@@ -26,8 +26,8 @@ set -uo pipefail
 #    two consecutive samples (the 2026-09-02 generate deadlock was alive with a
 #    quiet log; a busy Step 4 is quiet but burning CPU);
 #  * a heartbeat touches ONLY local metadata + <=64KB of log tail. It must never
-#    stat the dataset on /storage: that is the resource the run is bottlenecked
-#    on. See MONITOR.md section 5.
+#    stat the dataset on the shared filesystem: that is the resource the run is
+#    bottlenecked on.
 
 STATUS_DIR="${1:?usage: run_supervised.sh STATUS_DIR -- CMD [ARGS...]}"
 shift

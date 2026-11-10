@@ -7,7 +7,7 @@ All coordinates here are 0-based half-open (BED convention), matching what
 
 Inputs, all already on disk — nothing is fetched:
 
-* GENCODE v50 transcript annotation  ``/storage/data/reference_genome/``
+* GENCODE v50 transcript annotation  ``raw/gencode.v50.annotation.gtf.gz``
 * UCSC assembly gaps                 ``raw/gap.txt.gz``
 * ENCODE blacklist v2                ``raw/hg38-blacklist.v2.bed.gz``
 * hg38 chromosome sizes              ``raw/hg38.chrom.sizes``
@@ -33,7 +33,7 @@ from preprocess.regions import bedio
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
 
-DEFAULT_GENCODE = Path("/storage/data/reference_genome/gencode.v50.annotation.gtf.gz")
+DEFAULT_GENCODE = RAW / "gencode.v50.annotation.gtf.gz"
 DEFAULT_GAPS = RAW / "gap.txt.gz"
 DEFAULT_BLACKLIST = RAW / "hg38-blacklist.v2.bed.gz"
 DEFAULT_CHROM_SIZES = RAW / "hg38.chrom.sizes"

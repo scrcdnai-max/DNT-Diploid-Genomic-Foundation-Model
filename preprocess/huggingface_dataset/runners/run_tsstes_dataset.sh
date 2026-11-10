@@ -59,9 +59,9 @@ set -euo pipefail
 #                                 docker_images/glm_biotools/image.env
 #   ALLOW_MULTISAMPLE_BCF=1   accept the ~2.5x slower multi-sample BCF layout
 #   PHYLOP_BW, CADD_ARROW_DIR   per-base annotation sources (v7/v8 support both,
-#                               see versions.py allow_annotations); default to the
-#                               files the original v7 dataset used (the defaults of
-#                               run_canonical_dataset.sh --version v7), so tsstes
+#                               see versions.py allow_annotations). Both must be set:
+#                               the phyloP 100-way bigWig and the CADD full_arrow dir,
+#                               as for run_canonical_dataset.sh --version v7, so tsstes
 #                               gets annotation parity with it.
 #                               Set either to "" to build without that annotation.
 
@@ -117,7 +117,7 @@ fi
 # REPO (this checkout unless exported), RUNNERS_DIR, the data paths, GLM_BIOTOOLS_IMAGE:
 # shellcheck source=_common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
-DATA_ROOT="${DATA_ROOT:-/storage/data/1kgenomes}"
+# DATA_ROOT comes from _common.sh
 BED="${TSSTES_BED}"
 REF="${HG38_2BIT}"
 TOKENS="${DIPLOID_TOKENS}"
@@ -130,8 +130,14 @@ WORKERS="${WORKERS:-60}"
 JOBS="${JOBS:-8}"
 # The glm_biotools tag lives in ONE place (image.env); DOCKER_IMAGE still overrides per run.
 DOCKER_IMAGE="${DOCKER_IMAGE:-${GLM_BIOTOOLS_IMAGE}}"
-PHYLOP_BW="${PHYLOP_BW-/storage/data/PhyloP/hg38.phyloP100way.bw}"
-CADD_ARROW_DIR="${CADD_ARROW_DIR-/storage/data/CADD/full_arrow}"
+# Annotation sources: required for generate (set to "" to build without one); a
+# --convert-from run reads existing shards and needs neither.
+if [[ -n "${CONVERT_FROM}" ]]; then
+    PHYLOP_BW="${PHYLOP_BW-}" CADD_ARROW_DIR="${CADD_ARROW_DIR-}"
+else
+    PHYLOP_BW="${PHYLOP_BW?set PHYLOP_BW to the hg38.phyloP100way.bw path, or to \"\" to build without phyloP}"
+    CADD_ARROW_DIR="${CADD_ARROW_DIR?set CADD_ARROW_DIR to the CADD full_arrow dir, or to \"\" to build without CADD}"
+fi
 
 OUT_DIR="${DATA_ROOT}/diploid_hf_${VERSION}"
 ASM_DIR="${OUT_DIR}/assembled"
@@ -147,7 +153,7 @@ ANNOTATION_ARGS=()
 [[ -n "${PHYLOP_BW}"      ]] && ANNOTATION_ARGS+=(--phylop-bw "${PHYLOP_BW}")
 [[ -n "${CADD_ARROW_DIR}" ]] && ANNOTATION_ARGS+=(--cadd-arrow-dir "${CADD_ARROW_DIR}")
 GEN_CMD=(
-    uv run --no-sync python -m preprocess.huggingface_dataset.create_dataset generate
+    "${PYTHON}" -m preprocess.huggingface_dataset.create_dataset generate
         --version           "${VERSION}"
         --representation    diploid
         --tokens            "${TOKENS}"
@@ -173,7 +179,7 @@ ASSEMBLE_ARGS=(
 # On a conversion run the shards are the SOURCE version; --target-version drives
 # the on-the-fly rewrite and stamps the target's schema_version.
 [[ -n "${CONVERT_FROM}" ]] && ASSEMBLE_ARGS+=(--target-version "${VERSION}")
-ASM_CMD=(uv run --no-sync python -m preprocess.huggingface_dataset.create_dataset assemble "${ASSEMBLE_ARGS[@]}")
+ASM_CMD=("${PYTHON}" -m preprocess.huggingface_dataset.create_dataset assemble "${ASSEMBLE_ARGS[@]}")
 
 if [[ "${DRY_RUN}" == "1" ]]; then
     echo "=== DRY RUN — nothing checked, built or run. The run would execute, from ${REPO}:"
@@ -202,7 +208,7 @@ echo "[$(date '+%F %T')] preflight"
 # The BED must be the one the -tsstes presets pin. create_dataset.py enforces
 # this too, but failing here costs seconds instead of minutes of startup. The
 # expected hash is read from versions.py so there is one source of truth.
-EXPECTED_BED_SHA=$(uv run --no-sync python -c 'from preprocess.huggingface_dataset import versions; print(versions.TSSTES_BED_SHA256)')
+EXPECTED_BED_SHA=$("${PYTHON}" -c 'from preprocess.huggingface_dataset import versions; print(versions.TSSTES_BED_SHA256)')
 ACTUAL_BED_SHA=$(sha256sum "${BED}" | cut -d' ' -f1)
 if [[ "${ACTUAL_BED_SHA}" != "${EXPECTED_BED_SHA}" ]]; then
     echo "ERROR: ${BED} does not match the region set pinned by ${VERSION}." >&2
@@ -210,7 +216,7 @@ if [[ "${ACTUAL_BED_SHA}" != "${EXPECTED_BED_SHA}" ]]; then
     echo "  actual   sha256: ${ACTUAL_BED_SHA}" >&2
     echo "Rebuild it with:" >&2
     echo "  cd ${REPO}" >&2
-    echo "  uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division --out preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed" >&2
+    echo "  python -m preprocess.regions.nested_genome_division.build_division --out preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed" >&2
     echo "and either copy it over ${BED} or re-pin TSSTES_BED_SHA256 in versions.py." >&2
     exit 1
 fi
@@ -221,7 +227,7 @@ echo "  BED ......... OK ($(wc -l < "${BED}") intervals, sha ${ACTUAL_BED_SHA:0:
 # whenever it is missing or older than the BED it comes from.
 if [[ ! -f "${UNION_BED}" || "${BED}" -nt "${UNION_BED}" ]]; then
     echo "  union BED ... deriving ${UNION_BED}"
-    uv run --no-sync python - "${BED}" "${UNION_BED}" <<'PY'
+    "${PYTHON}" - "${BED}" "${UNION_BED}" <<'PY'
 import pathlib, sys
 from preprocess.regions.nested_genome_division import sources
 
@@ -252,8 +258,9 @@ if [[ -z "${CONVERT_FROM}" ]]; then
         # --ulimit is required: bcftools +split opens one fd per sample and the
         # panel has 3202. JOBS goes in via -e, not a shell prefix -- a shell
         # prefix does not enter the container.
+        docker_mount_args
         docker run --rm --user "$(id -u):$(id -g)" \
-            -v /storage:/storage \
+            "${DOCKER_MOUNT_ARGS[@]}" \
             --ulimit nofile=65536:65536 \
             -e JOBS="${JOBS}" \
             --name "tsstes_bcf_$$" \
@@ -270,7 +277,7 @@ create_dataset.py does NOT intersect — it consumes an already-prepared
 restricted to the merged tss-tes union. Re-run this script with --build-bcf,
 or run it yourself:
 
-  docker run --rm --user \$(id -u):\$(id -g) -v /storage:/storage \\
+  docker run --rm --user \$(id -u):\$(id -g) $(docker_mounts_text)\\
     --ulimit nofile=65536:65536 -e JOBS=${JOBS} ${DOCKER_IMAGE} \\
     bash ${RUNNERS_DIR}/make_persample_bcf.sh \\
       ${RAW_BCF_DIR} \\
@@ -288,7 +295,7 @@ EOF
     # 1b — layout. The multi-sample layout also "works" but is ~2.5x slower
     # end-to-end, which is hours at genome scale. Reuses create_dataset's own
     # detector so the rule cannot drift.
-    if ! uv run --no-sync python -c "
+    if ! "${PYTHON}" -c "
 import pathlib, sys
 from preprocess.huggingface_dataset import create_dataset
 sys.exit(0 if create_dataset._is_persample_bcf_dir(pathlib.Path('${BCF_DIR}')) else 1)
@@ -312,7 +319,7 @@ sys.exit(0 if create_dataset._is_persample_bcf_dir(pathlib.Path('${BCF_DIR}')) e
     # create_dataset.py's chromosome filter passes it and the chrX regions
     # silently yield nothing. Querying real records is the only way to tell.
     echo "  chrX check .. querying real variants…"
-    uv run --no-sync python - "${BCF_DIR}" "${BED}" <<'PY'
+    "${PYTHON}" - "${BCF_DIR}" "${BED}" <<'PY'
 import pathlib, sys
 from cyvcf2 import VCF
 

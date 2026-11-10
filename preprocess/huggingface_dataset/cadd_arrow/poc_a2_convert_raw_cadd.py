@@ -15,11 +15,11 @@ convention ``chr22`` (the value passed via ``--chrom``), so downstream
 consumers can match against BCF chrom names without a strip step.
 
 Run:
-  uv run python poc_a2_convert_raw_cadd.py \\
-    --snv-tsv   /opt/hpc/data/CADD/whole_genome_SNVs.tsv.gz \\
-    --indel-tsv /opt/hpc/data/CADD/gnomad.genomes.r4.0.indel.tsv.gz \\
+  python poc_a2_convert_raw_cadd.py \\
+    --snv-tsv   <cadd>/whole_genome_SNVs.tsv.gz \\
+    --indel-tsv <cadd>/gnomad.genomes.r4.0.indel.tsv.gz \\
     --chrom chr22 \\
-    --out-dir /opt/hpc/talz/diploid_glm_poc_annotate/s4_cadd_arrow/
+    --out-dir <cadd>/full_arrow/
 """
 
 from __future__ import annotations

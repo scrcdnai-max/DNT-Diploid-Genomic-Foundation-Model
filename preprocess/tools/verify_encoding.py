@@ -39,9 +39,9 @@ Exit codes:
   2 — exception during verification
 
 Usage:
-  uv run python -m preprocess.tools.verify_encoding \\
-      --parquet /opt/hpc/data/sense_data/diploid_hf_v5/train/HG00096.parquet \\
-      --bcf-dir /opt/hpc/data/sense_data/1kgenomes/raw_bcf_bed_intersected_hg38_pretrain_canonical_expanded
+  python -m preprocess.tools.verify_encoding \\
+      --parquet <data>/diploid_hf_v5/train/HG00096.parquet \\
+      --bcf-dir <data>/raw_bcf_bed_intersected_hg38_pretrain_canonical_expanded
 """
 
 from __future__ import annotations

@@ -21,6 +21,7 @@ The released models are on the Hugging Face Hub under
 | [`hf_cards/`](hf_cards/README.md) | the shipped `diploid_encode.py`, the model cards and the Hub publishing tools |
 | [`benchmarks/gfmbench/`](benchmarks/gfmbench/README.md) | zygosity-aware ClinVar tasks for [GFMBench-API](https://github.com/NVIDIA/GFMBench-api) |
 | [`benchmarks/datasets/`](benchmarks/datasets/README.md) | builders for the benchmark datasets (ClinVar diploid SNV / indel, 1000 Genomes MHC ancestry) |
+| [`docker_images/glm_biotools/`](docker_images/glm_biotools/README.md) | the htslib / bcftools / samtools / bedtools image the BCF steps run in |
 
 ## Pipeline
 
@@ -47,8 +48,9 @@ pip install -r requirements.txt
 `torch` must match your CUDA. `flash-attn` / `kernels` are optional and only used when
 `pretrain/ntv3_attention_patch.py` is asked to patch in FlashAttention.
 
-Run everything from the repository root: modules import each other as `preprocess.…` and
-`pretrain.…`, and default data paths are resolved from the repository root.
+Run everything from the repository root, in that environment: modules import each other as
+`preprocess.…` and `pretrain.…`, default data paths are resolved from the repository root, and
+the shell runners call `python3` (or `$PYTHON`).
 
 ## Reference data you need to supply
 
@@ -59,10 +61,12 @@ Nothing large is committed. You need:
 | GRCh38 as `preprocess/hg38.2bit` (UCSC; checksum in `preprocess/hg38.2bit.md5`) | encoder, dataset builder, `train.py --v2-input` |
 | 1000 Genomes high-coverage phased panel, per-chromosome BCFs | dataset builder |
 | UCSC phyloP 100-way bigWig and CADD v1.7 (optional per-base annotations) | dataset builder, `--version v7`/`v8` with annotations |
-| GENCODE v50 GTF, UCSC gap table, ENCODE blacklist v2, hg38 chrom sizes | only to rebuild the TSS–TES region BED |
+| GENCODE v50 GTF, UCSC gap table, ENCODE blacklist v2, hg38 chrom sizes, in `preprocess/regions/nested_genome_division/raw/` | only to rebuild the TSS–TES region BED |
 
-Shell runners and a few CLI defaults point at the authors' cluster paths; every one of them can
-be overridden by a flag or an environment variable (see each script's header).
+Data defaults are relative to the repository: the dataset runners read and write under
+`DATA_ROOT` (default `data/1kgenomes`, gitignored), and the per-sample BCF steps run bcftools
+in a container built from [`docker_images/glm_biotools/`](docker_images/glm_biotools/README.md).
+The layout and every variable are in [`preprocess/README.md`](preprocess/README.md#building-the-dataset).
 
 ## Licence
 

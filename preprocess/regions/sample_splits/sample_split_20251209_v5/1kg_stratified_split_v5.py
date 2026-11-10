@@ -7,12 +7,20 @@ are never split across train/test sets.
 INTERNAL_VERSION = 5
 """
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 from collections import defaultdict
 
+# usage: python 1kg_stratified_split_v5.py [20130606_g1k_3202_samples_ped_population.csv] [out_dir]
+HERE = Path(__file__).resolve().parent
+PED = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / '20130606_g1k_3202_samples_ped_population.csv'
+OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE
+
 # Read data
-df = pd.read_csv('/mnt/user-data/uploads/20130606_g1k_3202_samples_ped_population.csv', 
+df = pd.read_csv(PED, 
                  sep=r'\s+', header=0)
 
 print("=" * 60)
@@ -234,16 +242,16 @@ for size in sorted(df_split['ComponentSize'].unique()):
 # Export
 output_cols = ['SampleID', 'FamilyID', 'ComponentID', 'Sex', 'Sex_label', 'Population', 
                'Superpopulation', 'trio_role', 'ComponentSize', 'split']
-df_split[output_cols].to_csv('/mnt/user-data/outputs/1kg_train_test_split.csv', index=False)
+df_split[output_cols].to_csv(OUT / '1kg_train_test_split.csv', index=False)
 
-train_df[['SampleID']].to_csv('/mnt/user-data/outputs/1kg_train_samples.txt', 
+train_df[['SampleID']].to_csv(OUT / '1kg_train_samples.txt', 
                                index=False, header=False)
-test_df[['SampleID']].to_csv('/mnt/user-data/outputs/1kg_test_samples.txt', 
+test_df[['SampleID']].to_csv(OUT / '1kg_test_samples.txt', 
                               index=False, header=False)
 
 print("\n" + "=" * 60)
 print("OUTPUT FILES")
 print("=" * 60)
-print(f"  Full split:    /mnt/user-data/outputs/1kg_train_test_split.csv")
-print(f"  Train samples: /mnt/user-data/outputs/1kg_train_samples.txt ({len(train_df)} samples)")
-print(f"  Test samples:  /mnt/user-data/outputs/1kg_test_samples.txt ({len(test_df)} samples)")
+print(f"  Full split:    {OUT / '1kg_train_test_split.csv'}")
+print(f"  Train samples: {OUT / '1kg_train_samples.txt'} ({len(train_df)} samples)")
+print(f"  Test samples:  {OUT / '1kg_test_samples.txt'} ({len(test_df)} samples)")

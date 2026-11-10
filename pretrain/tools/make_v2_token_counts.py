@@ -7,7 +7,7 @@ sample; only relative frequencies matter (head-bias prior, random-fill pool, and
 ``--drop-unseen-tokens`` keeps). Markers get count 1: the collator drops them by id, so they
 must stay in the vocabulary, but they never reach the model.
 
-    uv run --no-sync python pretrain/tools/make_v2_token_counts.py
+    python pretrain/tools/make_v2_token_counts.py
 
 Reference-aware tokens: ``--reference`` (HG38 FASTA) with ``--tokens preprocess/diploid_tokens_v3.tsv`` reads each
 row's HG38 bases (``v2_input.row_reference``, which aligns rows with indels) and writes which copy carries the
@@ -30,7 +30,7 @@ from v2_input import MARKERS, V2Rewrite, row_reference  # noqa: E402
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--train-dir", type=Path, default=Path("/storage/data/1kgenomes/diploid_hf_v7-tsstes/assembled/train"))
+    p.add_argument("--train-dir", type=Path, default=Path("data/1kgenomes/diploid_hf_v7-tsstes/assembled/train"))
     p.add_argument("--tokens", type=Path, default=REPO_ROOT / "preprocess" / "diploid_tokens_v2.tsv")
     p.add_argument("--out", type=Path, default=REPO_ROOT / "preprocess" / "token_counts_v2.tsv")
     p.add_argument("--shards", type=int, nargs="+", default=[17, 641, 1090])

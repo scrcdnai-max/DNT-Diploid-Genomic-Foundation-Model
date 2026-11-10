@@ -222,9 +222,9 @@ chr1    824137  868937  ENSG00000228794.13 0      +       LINC01128  lncRNA     
 
 ```bash
 # from the repo root; D=preprocess/regions/nested_genome_division
-uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division --out /dev/null --annotated-out $D/hg38_tss_tes_v10.bed --quiet
+python -m preprocess.regions.nested_genome_division.build_division --out /dev/null --annotated-out $D/hg38_tss_tes_v10.bed --quiet
 cut -f1-3,6 $D/hg38_tss_tes.bed | md5sum; grep -v '^#' $D/hg38_tss_tes_v10.bed | cut -f1-3,6 | md5sum   # must match
-uv run --no-sync python -m preprocess.regions.nested_genome_division.validate_division $D/hg38_tss_tes_v10.bed                     # skips the header
+python -m preprocess.regions.nested_genome_division.validate_division $D/hg38_tss_tes_v10.bed                     # skips the header
 ```
 
 ## Regenerate
@@ -232,22 +232,21 @@ uv run --no-sync python -m preprocess.regions.nested_genome_division.validate_di
 ```bash
 # from the repo root (the modules import `preprocess.…` absolutely, so run them with -m)
 D=preprocess/regions/nested_genome_division
-uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division --out $D/out/hg38_tss_tes.bed
-uv run --no-sync python -m preprocess.regions.nested_genome_division.validate_division $D/out/hg38_tss_tes.bed
+python -m preprocess.regions.nested_genome_division.build_division --out $D/out/hg38_tss_tes.bed
+python -m preprocess.regions.nested_genome_division.validate_division $D/out/hg38_tss_tes.bed
 cp $D/out/hg38_tss_tes.bed $D/hg38_tss_tes.bed
 sha256sum $D/hg38_tss_tes.bed     # re-pin as TSSTES_BED_SHA256 in preprocess/huggingface_dataset/versions.py
 ```
 
 The builder runs the validator before writing, so a BED that lands in `out/` has already passed.
-After re-pinning the hash, run `uv run --no-sync pytest preprocess/tests/test_versions.py`,
-which checks the pin against the file on disk.
+A `-tsstes` dataset build checks the BED against this pin before any work starts.
 
 `build_artifact_data.py --verify-only` is the strongest single check in this directory: it
 re-derives every row through an independent re-implementation of the placement loop and refuses to
 proceed unless it reproduces the committed BED row for row.
 
 ```bash
-uv run --no-sync python -m preprocess.regions.nested_genome_division.build_artifact_data --verify-only
+python -m preprocess.regions.nested_genome_division.build_artifact_data --verify-only
 ```
 
 ## Files
@@ -261,12 +260,12 @@ uv run --no-sync python -m preprocess.regions.nested_genome_division.build_artif
 | [`build_artifact_data.py`](build_artifact_data.py) | the JS data blob for the published browser artifact, plus `--verify-only` |
 | [`hg38_tss_tes.bed`](hg38_tss_tes.bed) | the committed division, 59,572 rows |
 | [`hg38_tss_tes_v10.bed`](hg38_tss_tes_v10.bed) | the same 59,572 intervals as a headered BED6+3 (`#region_set=tss_tes_gencode50_tx128_v10`; GENCODE `gene_id` in col 4, `gene_name gene_type n_transcripts`) — the v10 haplotype-pair dataset input; built with `--annotated-out` |
-| `hg38_tss_tes_v10.genes.tsv` (not committed: 23 MB, written by `--annotated-out` next to the BED) | per-gene sidecar of the annotated BED (transcript ids/names/types, HGNC id, level, GENCODE version); copied into each v10 dataset as `region_annotations.tsv` |
-| `raw/` | gitignored inputs: `gap.txt.gz`, `hg38-blacklist.v2.bed.gz`, `hg38.chrom.sizes` |
+| [`hg38_tss_tes_v10.genes.tsv`](hg38_tss_tes_v10.genes.tsv) | per-gene sidecar of the annotated BED (transcript ids/names/types, HGNC id, level, GENCODE version); copied into each v10 dataset as `region_annotations.tsv` |
+| `raw/` | gitignored inputs: `gencode.v50.annotation.gtf.gz`, `gap.txt.gz`, `hg38-blacklist.v2.bed.gz`, `hg38.chrom.sizes` |
 
 Data inputs (nothing is fetched; defaults are in `sources.py`, override with `--gencode`, `--gaps`, `--blacklist`, `--chrom-sizes`):
 
-* GENCODE v50 — `gencode.v50.annotation.gtf.gz` (`--gencode`)
+* GENCODE v50 — `raw/gencode.v50.annotation.gtf.gz`
 * UCSC assembly gaps — `raw/gap.txt.gz`
 * ENCODE blacklist v2 — `raw/hg38-blacklist.v2.bed.gz`
 * hg38 chromosome sizes — `raw/hg38.chrom.sizes`

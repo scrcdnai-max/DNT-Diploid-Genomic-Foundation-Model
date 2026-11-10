@@ -69,8 +69,7 @@ fi
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 # The glm_biotools tag lives in ONE place; DOCKER_IMAGE still overrides per run.
 DOCKER_IMAGE="${DOCKER_IMAGE:-${GLM_BIOTOOLS_IMAGE}}"
-# /opt/hpc was an old environment; data lives under /storage/data (Tal, 2026-10-11).
-DATA_ROOT="${DATA_ROOT:-/storage/data/1kgenomes}"
+# DATA_ROOT comes from _common.sh
 BED="${LDB_BED}"
 REF="${HG38_2BIT}"
 TOKENS="${DIPLOID_TOKENS}"
@@ -90,7 +89,7 @@ SRC_DIR="${OUT_DIR}"
 cd "${REPO}"
 
 GEN_CMD=(
-    uv run --no-sync python -m preprocess.huggingface_dataset.create_dataset generate
+    "${PYTHON}" -m preprocess.huggingface_dataset.create_dataset generate
         --version           "${VERSION}"
         --representation    diploid
         --tokens            "${TOKENS}"
@@ -115,7 +114,7 @@ ASSEMBLE_ARGS=(
 # On a conversion run the shards are the SOURCE version; --target-version drives
 # the on-the-fly rewrite and stamps the target's schema_version.
 [[ -n "${CONVERT_FROM}" ]] && ASSEMBLE_ARGS+=(--target-version "${VERSION}")
-ASM_CMD=(uv run --no-sync python -m preprocess.huggingface_dataset.create_dataset assemble "${ASSEMBLE_ARGS[@]}")
+ASM_CMD=("${PYTHON}" -m preprocess.huggingface_dataset.create_dataset assemble "${ASSEMBLE_ARGS[@]}")
 
 if [[ "${DRY_RUN}" == "1" ]]; then
     echo "=== DRY RUN — nothing checked or run. The run would execute, from ${REPO}:"
@@ -137,7 +136,7 @@ echo "[$(date '+%F %T')] preflight"
 # The BED must be the one the -ldb presets pin. create_dataset.py enforces this
 # too, but failing here costs seconds instead of minutes of startup. The
 # expected hash is read from versions.py so there is one source of truth.
-EXPECTED_BED_SHA=$(uv run --no-sync python -c 'from preprocess.huggingface_dataset import versions; print(versions.LDB_BED_SHA256)')
+EXPECTED_BED_SHA=$("${PYTHON}" -c 'from preprocess.huggingface_dataset import versions; print(versions.LDB_BED_SHA256)')
 ACTUAL_BED_SHA=$(sha256sum "${BED}" | cut -d' ' -f1)
 if [[ "${ACTUAL_BED_SHA}" != "${EXPECTED_BED_SHA}" ]]; then
     echo "ERROR: ${BED} does not match the region set pinned by ${VERSION}." >&2
@@ -160,10 +159,10 @@ create_dataset.py does NOT intersect — it consumes an already-prepared
 ~140 GB). This must run inside the glm_biotools image (bcftools >= 1.13), and
 needs the raised fd limit because '+split' opens one file per sample:
 
-  docker run --rm --user \$(id -u):\$(id -g) -v /storage:/storage \\
+  docker run --rm --user \$(id -u):\$(id -g) $(docker_mounts_text)\\
     --ulimit nofile=65536:65536 -e JOBS=8 ${DOCKER_IMAGE} \\
     bash ${RUNNERS_DIR}/make_persample_bcf.sh \\
-      ${DATA_ROOT}/raw_bcf_ld_blocks_eur_intersected_20260720 \\
+      ${DATA_ROOT}/raw_bcf_ld_blocks_eur_intersected \\
       ${BED} \\
       ${BCF_DIR}
 
@@ -177,7 +176,7 @@ EOF
     # ~2.5x slower end-to-end, which is hours at genome scale — so refuse it
     # rather than silently taking it. Reuses create_dataset's own detector so
     # the rule cannot drift.
-    if ! uv run --no-sync python -c "
+    if ! "${PYTHON}" -c "
 import pathlib, sys
 from preprocess.huggingface_dataset import create_dataset
 sys.exit(0 if create_dataset._is_persample_bcf_dir(pathlib.Path('${BCF_DIR}')) else 1)

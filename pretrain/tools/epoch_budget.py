@@ -6,7 +6,7 @@ built before accelerate shards it across ranks); optimizer steps per epoch are t
 divided by grad-accum x world size. Every MAX_STEPS in this repo is a fraction of
 that number, never an epoch -- the finished 1e-1 tsstes run was 13.1% of one.
 
-    uv run --no-sync python -m pretrain.tools.epoch_budget \\
+    python -m pretrain.tools.epoch_budget \\
         --log output/dedup_ab/smoke_dedup/smoke.log --accum 2 --nproc 4 \\
         [--max-steps 84564] [--sec-per-step 1.17]
 """

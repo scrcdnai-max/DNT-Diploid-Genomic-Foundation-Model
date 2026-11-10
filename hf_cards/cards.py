@@ -517,7 +517,7 @@ Sheba Medical Center · NVIDIA · Icahn School of Medicine at Mount Sinai.
 """
 
 
-BANNED = ("covariance", "covpool", "recipe", "phylop", "cadd", "allele freq", "allele-freq", "aux", "leak", "/storage", "/data/", "wandb")
+BANNED = ("covariance", "covpool", "recipe", "phylop", "cadd", "allele freq", "allele-freq", "aux", "leak", "/home/", "/mnt/", "/opt/", "/storage", "/data/", "wandb")
 
 if __name__ == "__main__":
     out = Path(__file__).with_name("cards"); out.mkdir(exist_ok=True)

@@ -159,7 +159,7 @@ class PhyloPAnnotation(Annotation):
     """100-way vertebrate PhyloP conservation score from a bigWig file.
 
     The caller MUST pass an explicit ``source_path``. The previous default
-    (``/opt/hpc/data/PhylopP/hg38.phyloP100way.bw``) was removed because
+    (a site-specific ``hg38.phyloP100way.bw`` path) was removed because
     silently substituting a default invited the kind of wrong-shard
     misconfiguration that produced ~96% silent NaN in the v7 pipeline.
 
@@ -283,8 +283,8 @@ class CADDAnnotation(Annotation):
     # Raw source paths are kept as class constants for provenance reporting
     # only — never used as a lookup fallback. Caller MUST pass an explicit
     # ``arrow_dir`` to the constructor.
-    RAW_SNV_SOURCE = "/opt/hpc/data/CADD/whole_genome_SNVs.tsv.gz"
-    RAW_INDEL_SOURCE = "/opt/hpc/data/CADD/gnomad.genomes.r4.0.indel.tsv.gz"
+    RAW_SNV_SOURCE = "whole_genome_SNVs.tsv.gz"
+    RAW_INDEL_SOURCE = "gnomad.genomes.r4.0.indel.tsv.gz"
     CADD_VERSION = "CADD-v1.7-GRCh38"
 
     def __init__(self, arrow_dir: str):

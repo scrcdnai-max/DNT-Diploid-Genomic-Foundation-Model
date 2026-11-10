@@ -37,16 +37,16 @@ Regenerating the artifact end to end (e.g. after a GENCODE version bump):
 
 1. If the GENCODE input changed, update ``sources.DEFAULT_GENCODE`` (or pass
    ``--gencode`` below) to the new GTF, e.g.
-   ``/storage/data/reference_genome/gencode.v51.annotation.gtf.gz``.
+   ``gencode.v51.annotation.gtf.gz``.
 2. Rebuild the division BED (see this directory's README, "Regenerate"):
-       uv run --no-sync python -m preprocess.regions.nested_genome_division.build_division \\
+       python -m preprocess.regions.nested_genome_division.build_division \\
            --gencode <new.gtf.gz> --out preprocess/regions/nested_genome_division/out/hg38_tss_tes.bed
    The builder runs ``validate_division.py`` before writing, so a BED that lands
    in ``out/`` has already passed every invariant. Copy it over the committed
    file in this directory and update ``TSSTES_BED_SHA256`` in
    ``../../huggingface_dataset/versions.py`` to match.
 3. Run this script:
-       uv run --no-sync python -m preprocess.regions.nested_genome_division.build_artifact_data --out /tmp/genome_data.js
+       python -m preprocess.regions.nested_genome_division.build_artifact_data --out /tmp/genome_data.js
    It re-derives padding by re-running the placement algorithm against whichever
    GENCODE file produced the committed ``hg38_tss_tes.bed``, and refuses to write
    output if that re-run doesn't reproduce the committed BED exactly (row count

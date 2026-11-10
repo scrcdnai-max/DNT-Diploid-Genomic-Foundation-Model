@@ -39,7 +39,7 @@ batch, steps) are listed in the *Provenance* section of its model card, in `../h
 | `windowing.py` | window stride resolution |
 | `multiobj.py` | allele-frequency tables and the effect-ranked margin loss for the auxiliary objectives |
 | `v2_input.py` | the one-token-per-position input (`--v2-input`), read from stored rows without re-encoding |
-| `og2_mix.py`, `og2_replay.py` | optional OpenGenome2 replay mixing (`--og2-*`; data from `tools/download_og2_replay.py`) |
+| `og2_mix.py`, `og2_replay.py` | optional OpenGenome2 replay mixing (`--og2-*`; data from `tools/download_og2_replay.py`, default `data/opengenome2/`) |
 | `prepare_eval_data.py` | deduplicated, variant-window test set for fast MLM evaluation |
 | `build_eval_small.py` | small persisted eval set with the natural variant / reference mix |
 

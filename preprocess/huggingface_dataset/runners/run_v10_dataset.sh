@@ -66,11 +66,8 @@ set -euo pipefail
 # after a crash resumes (generate skips finished shards; finalize-ref is
 # derived data and simply overwrites).
 #
-# VENV. Never let a bare `uv run` from a non-primary host touch the shared
-# /storage .venv (it gets DELETED, see preprocess/CLAUDE.md). Asserted before the first
-# `uv run`: PRIMARY_HOST=1 → shared venv; UV_PROJECT_ENVIRONMENT set → must
-# exist; otherwise the shared venv's pinned interpreter must be present on this
-# host (that is exactly the test uv applies before deciding to recreate it).
+# PYTHON. Every Python stage runs under $PYTHON (default python3 on PATH): run this
+# from the environment the repo's requirements are installed in, or export PYTHON.
 #
 # Env (all overridable):
 #   REPO, DATA_ROOT, RAW_BCF_DIR, BCF_DIR, UNION_BED, BED, REF, TOKENS,
@@ -82,7 +79,8 @@ set -euo pipefail
 #   COMPRESSION_LEVEL=3  REGION_BATCH_SIZE=200  MAX_SAMPLES  MAX_REGIONS
 #   ALLOW_MULTISAMPLE_BCF=1     accept the ~2.5x slower multi-sample BCF layout
 #   FORCE_SINGLE_HOST_BCF=1     run make_persample_bcf.sh even for >5,000 samples
-#   PRIMARY_HOST=1 / UV_PROJECT_ENVIRONMENT / SUPERVISOR   (see VENV above)
+#   PYTHON (see above), SUPERVISOR (default: run_supervised.sh next to this script)
+#   DOCKER_EXTRA_MOUNTS         extra dirs to bind into the glm_biotools container
 
 START_TIME=$(date +%s)
 echo "=== Started at $(date '+%F %T') on $(hostname) ==="
@@ -118,12 +116,12 @@ done
 
 # — Paths ————————————————————————————————————————————————————————————————————
 # REPO: this checkout unless exported (an exported one is resolved like every path
-# below). _common.sh also gives RUNNERS_DIR, the data paths, GLM_BIOTOOLS_IMAGE, UV, uvrun.
+# below). _common.sh also gives RUNNERS_DIR, DATA_ROOT, the data paths, GLM_BIOTOOLS_IMAGE, PYTHON, pyrun.
 [[ -n "${REPO:-}" ]] && REPO="$(realpath -m "${REPO}")"
 # shellcheck source=_common.sh
 source "$(dirname "${SELF}")/_common.sh"
 # The glm_biotools tag lives in ONE place (image.env); DOCKER_IMAGE still overrides per run.
-DATA_ROOT="${DATA_ROOT:-/storage/data/1kgenomes}"
+# DATA_ROOT comes from _common.sh
 HFD="${REPO}/preprocess/huggingface_dataset"
 BED="${BED:-${TSSTES_V10_BED}}"
 REF="${REF:-${HG38_2BIT}}"
@@ -169,43 +167,9 @@ export REPO DATA_ROOT BED REF TOKENS TEST_SAMPLES SAMPLES_FILE RAW_BCF_DIR BCF_D
 case "${FORMAT}" in parquet|tsv|both) ;; *) echo "ERROR: FORMAT must be parquet|tsv|both (got '${FORMAT}')" >&2; exit 1 ;; esac
 case "${TSV_MODE}" in variants|full) ;; *) echo "ERROR: TSV_MODE must be variants|full (got '${TSV_MODE}')" >&2; exit 1 ;; esac
 
-# — venv (before the first `uv run`) ——————————————————————————————————————————
-# UV comes from _common.sh (ssh non-interactive PATH may not include ~/.local/bin).
-[ -x "$UV" ] || { echo "ERROR: uv not found" >&2; exit 1; }
-if [[ "${PRIMARY_HOST:-0}" == "1" ]]; then
-    echo "venv: shared ${REPO}/.venv (PRIMARY_HOST=1)"
-elif [[ -n "${UV_PROJECT_ENVIRONMENT:-}" ]]; then
-    export UV_PROJECT_ENVIRONMENT
-    [ -x "${UV_PROJECT_ENVIRONMENT}/bin/python3" ] || {
-        echo "ERROR: no host-local venv at ${UV_PROJECT_ENVIRONMENT} — build it with" >&2
-        echo "  UV_PROJECT_ENVIRONMENT=${UV_PROJECT_ENVIRONMENT} uv sync --frozen" >&2
-        echo "A bare uv run here would DELETE the shared /storage venv." >&2
-        exit 1; }
-    echo "venv: ${UV_PROJECT_ENVIRONMENT} ($("${UV_PROJECT_ENVIRONMENT}/bin/python3" -V))"
-else
-    # The shared venv pins an absolute interpreter path (`home =` in pyvenv.cfg).
-    # uv recreates the venv — empty, with --no-sync — when that path is missing
-    # on the running host. So "the pinned interpreter runs here" is the exact
-    # condition under which a bare `uv run` is safe.
-    VENV_HOME="$(sed -n 's/^home *= *//p' "${REPO}/.venv/pyvenv.cfg" 2>/dev/null || true)"
-    if [[ -n "${VENV_HOME}" && -x "${VENV_HOME}/python3" ]] && "${VENV_HOME}/python3" -c pass 2>/dev/null; then
-        echo "venv: shared ${REPO}/.venv (its pinned interpreter ${VENV_HOME}/python3 runs on $(hostname))"
-    else
-        cat >&2 <<EOF
-ERROR: this host cannot use the shared ${REPO}/.venv (pinned interpreter
-'${VENV_HOME:-<unreadable pyvenv.cfg>}' is not present here). A bare \`uv run\`
-would DELETE that venv out from under whatever is running on the primary host
-(see preprocess/CLAUDE.md, 2026-09-03). Give this host its own venv:
-
-  export UV_PROJECT_ENVIRONMENT=/opt/hpc/talz/venvs/diploid_glm
-  uv sync --frozen
-  UV_PROJECT_ENVIRONMENT=/opt/hpc/talz/venvs/diploid_glm $SELF ${ORIG_ARGS[*]:-}
-
-or, if you are sure this IS the primary host, PRIMARY_HOST=1.
-EOF
-        exit 1
-    fi
-fi
+# — python ——————————————————————————————————————————————————————————————————————
+command -v "${PYTHON}" >/dev/null || { echo "ERROR: ${PYTHON} not found (export PYTHON)" >&2; exit 1; }
+echo "python: $(command -v "${PYTHON}") ($("${PYTHON}" -V 2>&1))"
 cd "${REPO}"
 [[ "${DRY_RUN}" == "1" ]] || mkdir -p "${LOG_DIR}"
 
@@ -224,7 +188,7 @@ if [[ ! -f "${BED}" ]]; then
     fi
     [[ "${DRY_RUN}" == "1" ]] && { echo "ERROR: ${BED} missing; a dry run does not build it" >&2; exit 1; }
     echo "  BED ......... missing — building the annotated division (~2 min, GENCODE v50)"
-    uvrun -m preprocess.regions.nested_genome_division.build_division --out /dev/null --annotated-out "${BED}" --quiet
+    pyrun -m preprocess.regions.nested_genome_division.build_division --out /dev/null --annotated-out "${BED}" --quiet
 fi
 BED_SHA=$(sha256sum "${BED}" | cut -d' ' -f1)
 BED_REGION_SET=$(grep -m1 '^#region_set=' "${BED}" | cut -d= -f2- || true)
@@ -246,7 +210,7 @@ BED_HAS_CHRX=$(grep -v '^#' "${BED}" | cut -f1 | grep -cx 'chrX' || true)
 # reconciled with the RECORDED union the existing BCF dir was cut on.
 echo "  union BED ... deriving from ${BED}"
 mkdir -p "$(dirname "${V10_UNION_BED}")"     # a fresh DATA_ROOT has no dir yet
-uvrun - "${BED}" "${V10_UNION_BED}" <<'PY'
+pyrun - "${BED}" "${V10_UNION_BED}" <<'PY'
 import pathlib, sys
 from preprocess.regions.nested_genome_division import sources
 
@@ -300,7 +264,7 @@ create_haplotype_dataset.py does NOT intersect — it consumes an already-prepar
 --bcf-dir of <sample>.bcf files restricted to the merged union (${UNION_BED}).
 Re-run this script with --build-bcf, or run it yourself:
 
-  docker run --rm --user \$(id -u):\$(id -g) -v /storage:/storage \\
+  docker run --rm --user \$(id -u):\$(id -g) $(docker_mounts_text)\\
     --ulimit nofile=65536:65536 -e JOBS=${JOBS} ${DOCKER_IMAGE} \\
     bash ${RUNNERS_DIR}/make_persample_bcf.sh \\
       ${RAW_BCF_DIR} \\
@@ -330,7 +294,8 @@ if [[ ! -d "${BCF_DIR}" && "${BUILD_BCF}" == "1" && "${DRY_RUN}" != "1" ]]; then
     else
         FIRST_RAW=$(ls "${RAW_BCF_DIR}"/*.bcf 2>/dev/null | head -1)
         [ -n "${FIRST_RAW}" ] || { echo "ERROR: no *.bcf in ${RAW_BCF_DIR}" >&2; exit 1; }
-        N_SAMPLES=$(docker run --rm --user "$(id -u):$(id -g)" -v /storage:/storage "${DOCKER_IMAGE}" \
+        docker_mount_args
+        N_SAMPLES=$(docker run --rm --user "$(id -u):$(id -g)" "${DOCKER_MOUNT_ARGS[@]}" "${DOCKER_IMAGE}" \
                         bcftools query -l "${FIRST_RAW}" | wc -l)
     fi
     echo "  BCF build ... ${N_SAMPLES} samples, JOBS=${JOBS} -> $((JOBS * N_SAMPLES + 1000)) fds (limit 65536)"
@@ -350,8 +315,9 @@ if [[ ! -d "${BCF_DIR}" && "${BUILD_BCF}" == "1" && "${DRY_RUN}" != "1" ]]; then
     echo "  log: ${BCF_LOG}   (hours; output + transient scratch)"
     # --ulimit is required: bcftools +split opens one fd per sample. JOBS goes
     # in via -e, not a shell prefix -- a shell prefix does not enter the container.
+    docker_mount_args
     docker run --rm --user "$(id -u):$(id -g)" \
-        -v /storage:/storage \
+        "${DOCKER_MOUNT_ARGS[@]}" \
         --ulimit nofile=65536:65536 \
         -e JOBS="${JOBS}" \
         --name "v10_bcf_$$" \
@@ -371,7 +337,7 @@ fi
 if [[ -d "${BCF_DIR}" ]]; then
     # 1b — layout. The multi-sample layout also "works" but is ~2.5x slower
     # end-to-end. Reuses create_dataset's own detector so the rule cannot drift.
-    if ! uvrun -c "
+    if ! pyrun -c "
 import pathlib, sys
 from preprocess.huggingface_dataset import create_dataset
 sys.exit(0 if create_dataset._is_persample_bcf_dir(pathlib.Path('${BCF_DIR}')) else 1)
@@ -398,7 +364,7 @@ sys.exit(0 if create_dataset._is_persample_bcf_dir(pathlib.Path('${BCF_DIR}')) e
     # to tell. Only meaningful when $BED has chrX rows (the v10 BED does).
     if [[ "${BED_HAS_CHRX}" -gt 0 ]]; then
         echo "  chrX check .. querying real variants…"
-        uvrun - "${BCF_DIR}" "${BED}" <<'PY'
+        pyrun - "${BCF_DIR}" "${BED}" <<'PY'
 import pathlib, sys
 from cyvcf2 import VCF
 
@@ -490,9 +456,9 @@ FIN_ARGS=(
 if [[ "${DRY_RUN}" == "1" ]]; then
     echo ""
     echo "=== DRY RUN — nothing generated. The run would execute, under run_supervised.sh:"
-    print_cmd "$UV" run --no-sync python -m preprocess.huggingface_dataset.create_haplotype_dataset "${GEN_ARGS[@]}"
+    print_cmd "${PYTHON}" -m preprocess.huggingface_dataset.create_haplotype_dataset "${GEN_ARGS[@]}"
     echo "then, if generate did not write HG38_REF itself:"
-    print_cmd "$UV" run --no-sync python -m preprocess.huggingface_dataset.create_haplotype_dataset "${FIN_ARGS[@]}"
+    print_cmd "${PYTHON}" -m preprocess.huggingface_dataset.create_haplotype_dataset "${FIN_ARGS[@]}"
     echo "then the smoke verify (alphabet, HG38_REF weights, region_annotations.tsv)."
     echo "=== Finished dry run at $(date '+%F %T') ==="
     exit 0
@@ -500,9 +466,9 @@ fi
 
 # — Detach: stages 2-4 under the supervisor ————————————————————————————————————
 if [[ "${FOREGROUND}" != "1" ]]; then
-    # Host-local supervisor copy preferred: /storage copies are unsafe to
-    # replace while a remote host is lazily reading them.
-    SUP="${SUPERVISOR:-/opt/hpc/talz/bin/run_supervised.sh}"
+    # SUPERVISOR can point at a host-local copy: a script on a shared filesystem is
+    # unsafe to replace while a remote host is lazily reading it.
+    SUP="${SUPERVISOR:-${RUNNERS_DIR}/run_supervised.sh}"
     [ -x "$SUP" ] || SUP="${RUNNERS_DIR}/run_supervised.sh"
     SD="${LOG_DIR}/generate_$(hostname)_$(date +%Y%m%d_%H%M%S)"
     echo "[$(date '+%F %T')] launching stages 2-4 detached under ${SUP}"
@@ -525,7 +491,7 @@ echo "[$(date '+%F %T')] START generate (v10, format=${FORMAT}, ${COMPRESSION}-$
 echo "  NOTE: the region set OVERLAPS (1.19x) and nothing is deduplicated — rows sum"
 echo "        to 2.313 Gbp of reference per patient at most; size the output for that."
 GEN_RC=0
-uvrun -m preprocess.huggingface_dataset.create_haplotype_dataset "${GEN_ARGS[@]}" || GEN_RC=$?
+pyrun -m preprocess.huggingface_dataset.create_haplotype_dataset "${GEN_ARGS[@]}" || GEN_RC=$?
 if [[ "${GEN_RC}" != "0" ]]; then
     echo "[$(date '+%F %T')] generate exited ${GEN_RC} — some samples FAILED / were claimed / are missing." >&2
     echo "  Fix the cause (an unphased heterozygote FAILS its sample by design), re-run to fill" >&2
@@ -548,7 +514,7 @@ else
     fi
     if [[ "${NEED_REF}" == "1" ]]; then
         echo "[$(date '+%F %T')] START finalize-ref (generate left no HG38_REF)"
-        uvrun -m preprocess.huggingface_dataset.create_haplotype_dataset "${FIN_ARGS[@]}"
+        pyrun -m preprocess.huggingface_dataset.create_haplotype_dataset "${FIN_ARGS[@]}"
         echo "[$(date '+%F %T')] END finalize-ref"
     else
         echo "[$(date '+%F %T')] finalize-ref already done by generate (HG38_REF.parquet present)"
@@ -557,7 +523,7 @@ fi
 
 # — Stage 4 — smoke verify ———————————————————————————————————————————————————
 echo "[$(date '+%F %T')] START verify"
-uvrun - "${OUT_DIR}" "${FORMAT}" "${EXPECT_ANNOTATIONS}" <<'PY'
+pyrun - "${OUT_DIR}" "${FORMAT}" "${EXPECT_ANNOTATIONS}" <<'PY'
 import collections, json, random, sys
 from pathlib import Path
 import pyarrow.compute as pc

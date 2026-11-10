@@ -36,10 +36,10 @@ heterozygote (``0/1``) is a **hard error** for that sample (FAILED, exit 1).
 
 Usage (data node)::
 
-    uv run --no-sync python -m preprocess.huggingface_dataset.create_haplotype_dataset generate \\
+    python -m preprocess.huggingface_dataset.create_haplotype_dataset generate \\
         --bcf-dir <per-sample BCFs> --bed hg38_tss_tes_v10.bed --ref hg38.2bit \\
         --output <out> [--test-samples-file ...] [--format parquet|tsv|both]
-    uv run --no-sync python -m preprocess.huggingface_dataset.create_haplotype_dataset finalize-ref \\
+    python -m preprocess.huggingface_dataset.create_haplotype_dataset finalize-ref \\
         --output <out> --bed hg38_tss_tes_v10.bed --ref hg38.2bit
 
 ``run_v10_dataset.sh`` chains the BED build, the BCF prep and these two
@@ -1158,7 +1158,7 @@ def _sidecar_set(sidecar: Path, key: str, value) -> None:
 
 
 def _finalize_ref_command(args: argparse.Namespace) -> str:
-    return ("uv run --no-sync python -m preprocess.huggingface_dataset.create_haplotype_dataset finalize-ref "
+    return ("python -m preprocess.huggingface_dataset.create_haplotype_dataset finalize-ref "
             f"--output {args.output} --bed {args.bed} --ref {args.ref}"
             + (f" --tokens {args.tokens}" if args.tokens else ""))
 

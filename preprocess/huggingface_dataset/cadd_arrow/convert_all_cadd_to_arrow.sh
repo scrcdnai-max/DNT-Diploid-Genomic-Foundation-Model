@@ -19,6 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "${SCRIPT_DIR}/../../.." && pwd)}"
 PARALLEL=2
+PYTHON="${PYTHON:-python3}"
 
 # Parse arguments
 IN_DIR=""
@@ -68,7 +69,7 @@ convert_one() {
     fi
 
     log "[$chrom] START"
-    if /usr/bin/time -v uv run python "$SCRIPT_DIR/poc_a2_convert_raw_cadd.py" \
+    if /usr/bin/time -v "${PYTHON}" "$SCRIPT_DIR/poc_a2_convert_raw_cadd.py" \
             --snv-tsv "$SNV_TSV" \
             --indel-tsv "$INDEL_TSV" \
             --chrom "$chrom" \
@@ -132,7 +133,7 @@ MANIFEST=$OUT_DIR/MANIFEST.md
         rss="-"
         if [[ -f "$snv_path" ]]; then
             snv_bytes=$(stat -c %s "$snv_path")
-            snv_rows=$(uv run python -c "
+            snv_rows=$("${PYTHON}" -c "
 import pyarrow.ipc as ipc, pyarrow as pa, sys
 with pa.OSFile('$snv_path','rb') as f, ipc.open_file(f) as r:
     print(r.read_all().num_rows)
@@ -140,7 +141,7 @@ with pa.OSFile('$snv_path','rb') as f, ipc.open_file(f) as r:
         fi
         if [[ -f "$indel_path" ]]; then
             indel_bytes=$(stat -c %s "$indel_path")
-            indel_rows=$(uv run python -c "
+            indel_rows=$("${PYTHON}" -c "
 import pyarrow.ipc as ipc, pyarrow as pa, sys
 with pa.OSFile('$indel_path','rb') as f, ipc.open_file(f) as r:
     print(r.read_all().num_rows)

@@ -12,9 +12,9 @@ embedding benchmarks read hidden states, not LM-head logits. So a pruned arm may
 keep its unpruned anchor -- see test_prune_dead_vocab_rows.py, which asserts the
 hidden states are bitwise equal rather than arguing it.
 
-    uv run --no-sync python -m pretrain.tools.prune_dead_vocab_rows \
-        --src  /storage/users/ddofer/models/100m_post_bundle_w2048/_emb_warmup/final \
-        --dst  /storage/users/ddofer/models/100m_post_loraconv/_emb_warmup/final
+    python -m pretrain.tools.prune_dead_vocab_rows \
+        --src  <models>/100m_post_bundle_w2048/_emb_warmup/final \
+        --dst  <models>/100m_post_loraconv/_emb_warmup/final
 
 RUN pretrain/tools/verify_dead_tokens.py FIRST. If the counts table is stale for
 the corpus, this deletes a row for a symbol that does occur and it silently
@@ -54,9 +54,8 @@ def main() -> int:
     ap.add_argument("--dst", type=Path, required=True, help="where to write it")
     ap.add_argument(
         "--base-model",
-        type=Path,
-        default=Path("/storage/models/NTv3_100M_post"),
-        help="Unexpanded NTv3 dir, used to rebuild the tokenizer from its base "
+        default="InstaDeepAI/NTv3_100M_post",
+        help="Unexpanded NTv3 (Hub id or local dir), used to rebuild the tokenizer from its base "
         "vocabulary. Adding the kept symbols to a fresh base assigns exactly the "
         "ids a --drop-unseen-tokens run would; editing the expanded "
         "tokenizer.json in place does not (its added tokens cannot be renumbered).",

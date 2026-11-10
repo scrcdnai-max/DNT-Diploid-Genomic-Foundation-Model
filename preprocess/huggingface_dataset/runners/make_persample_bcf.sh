@@ -17,7 +17,7 @@
 #
 # Requires bcftools >= 1.13. Run inside the glm_biotools image — the tag is pinned
 # as GLM_BIOTOOLS_IMAGE in docker_images/glm_biotools/image.env — e.g.:
-#   docker run --rm --user $(id -u):$(id -g) -v /opt/hpc:/opt/hpc \
+#   docker run --rm --user $(id -u):$(id -g) -v "$REPO:$REPO" -v "$DATA_ROOT:$DATA_ROOT" \
 #     --ulimit nofile=65536:65536 \
 #     -e JOBS=8 \
 #     "${GLM_BIOTOOLS_IMAGE}" bash THIS_SCRIPT RAW_DIR BED OUT_DIR [SAMPLES_FILE]

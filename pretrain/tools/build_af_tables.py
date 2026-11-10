@@ -10,8 +10,8 @@ ponytail: SNV-only v1 (indel windows are masked out of Track C anyway). Indel AF
 would need the indel-arrow path; add only if Track C proves worth it.
 
 Usage:
-  uv run --no-sync python tools/build_af_tables.py            # all autosomes
-  CHROMS=chr22 uv run --no-sync python tools/build_af_tables.py   # one chrom (test)
+  python tools/build_af_tables.py            # all autosomes
+  CHROMS=chr22 python tools/build_af_tables.py   # one chrom (test)
 """
 import os, subprocess
 import numpy as np

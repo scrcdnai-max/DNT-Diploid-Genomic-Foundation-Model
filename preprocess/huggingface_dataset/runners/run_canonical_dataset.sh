@@ -13,12 +13,12 @@ set -euo pipefail
 #            [--phylop-bw BW] [--cadd-arrow-dir DIR] [--workers N] [--dry-run]
 #
 #   v4–v6nd  no per-base annotation columns (the annotation flags are rejected).
-#   v7       always both annotations; they default to the files the original v7 used.
+#   v7       always both annotations: --phylop-bw and --cadd-arrow-dir are required.
 #   v8       annotations only when given.
 #   haploid  no --tokens, no direction markers; --cadd-arrow-dir is diploid-only.
 #   --dry-run  print the two commands and exit; nothing is checked, created or run.
 #
-# Paths can be overridden from the environment: DATA_ROOT (default /storage/data/1kgenomes),
+# Paths can be overridden from the environment: DATA_ROOT (default <repo>/data/1kgenomes),
 # BCF_DIR, BED, REF, TOKENS, TEST_SAMPLES, OUT_DIR (relative paths are taken from the
 # caller's cwd). Each run copies this script and a run_metadata_<ts>.txt (the invocation, the
 # two resolved commands, host, git commit) into OUT_DIR and tees generate_<ts>.log /
@@ -62,9 +62,7 @@ case "${VERSION}" in
        fi ;;
 esac
 if [[ "${VERSION}" == v7 ]]; then
-    # The original v7 dataset carries both columns; an explicit empty value is an error, not "off".
-    [[ ${PHYLOP_SET} == 1 ]] || PHYLOP_BW=/storage/data/PhyloP/hg38.phyloP100way.bw
-    [[ ${CADD_SET} == 1 ]] || CADD_ARROW_DIR=/storage/data/CADD/full_arrow
+    # The original v7 dataset carries both columns; a missing or empty value is an error, not "off".
     if [[ -z "${PHYLOP_BW}" || -z "${CADD_ARROW_DIR}" ]]; then
         echo "ERROR: --version v7 needs both --phylop-bw and --cadd-arrow-dir" >&2; exit 1
     fi
@@ -76,7 +74,7 @@ fi
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 # — Paths ——————————————————————————————————————————————————————————————————————
-DATA_ROOT="${DATA_ROOT:-/storage/data/1kgenomes}"
+# DATA_ROOT comes from _common.sh
 BCF_DIR="${BCF_DIR:-${DATA_ROOT}/raw_bcf_bed_intersected_hg38_pretrain_canonical_expanded_per_sample}"
 BED="${BED:-${CANONICAL_BED}}"
 REF="${REF:-${HG38_2BIT}}"
@@ -97,14 +95,14 @@ ANNOTATION_ARGS=()
 [[ -n "${CADD_ARROW_DIR}" ]] && ANNOTATION_ARGS+=(--cadd-arrow-dir "${CADD_ARROW_DIR}")
 
 cd "${REPO}"
-GEN_CMD=("$UV" run --no-sync python -m preprocess.huggingface_dataset.create_dataset generate
+GEN_CMD=("${PYTHON}" -m preprocess.huggingface_dataset.create_dataset generate
     --version "${VERSION}" --representation "${REPRESENTATION}"
     ${TOKENS_ARGS[@]+"${TOKENS_ARGS[@]}"}
     --bcf-dir "${BCF_DIR}" --bed "${BED}" --ref "${REF}" --output "${OUT_DIR}"
     --test-samples-file "${TEST_SAMPLES}"
     ${ANNOTATION_ARGS[@]+"${ANNOTATION_ARGS[@]}"}
     --workers "${WORKERS}" --compression lz4 --clean-stale --log-level ERROR)
-ASM_CMD=("$UV" run --no-sync python -m preprocess.huggingface_dataset.create_dataset assemble
+ASM_CMD=("${PYTHON}" -m preprocess.huggingface_dataset.create_dataset assemble
     --shard-dir "${OUT_DIR}/train" --test-shard-dir "${OUT_DIR}/test"
     --output "${ASM_DIR}" --hf-cache-dir "${HF_CACHE}" --max-shard-size 10GB --log-level ERROR)
 

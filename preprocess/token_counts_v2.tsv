@@ -1,4 +1,4 @@
-# v2 input token counts: 5100 stored rows (345720028 tokens) of /storage/data/1kgenomes/diploid_hf_v7-tsstes/assembled/train,
+# v2 input token counts: 5100 stored rows (345720028 tokens) of <data>/diploid_hf_v7-tsstes/assembled/train,
 # shards [17, 641, 1090], read through pretrain/v2_input.py with markers removed. Markers count 1 (kept in the
 # vocabulary for the collator's drop). Written by pretrain/tools/make_v2_token_counts.py.
 pair	order	symbol	count

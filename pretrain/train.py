@@ -1978,7 +1978,7 @@ def _maybe_wrap_lora(
     except ImportError as exc:
         raise SystemExit(
             "--peft-main=lora requires the `peft` package. "
-            "Install with `uv pip install peft` and re-run."
+            "Install with `pip install peft` and re-run."
         ) from exc
 
     target_suffixes = [t.strip() for t in args.lora_target.split(",") if t.strip()]
@@ -7736,7 +7736,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--og2-manifest",
         type=str,
-        default="/storage/users/ddofer/datasets/opengenome2/manifests/shards.tsv",
+        default="data/opengenome2/manifests/shards.tsv",
         help="OpenGenome2 replay pool manifest (shards.tsv). Only read when "
         "--og2-fraction > 0.",
     )

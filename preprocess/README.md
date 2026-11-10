@@ -65,10 +65,28 @@ wrong representation; `provenance.json` next to each dataset records how it was 
 
 `huggingface_dataset/runners/` are the shell wrappers used to build the published corpora
 (`run_canonical_dataset.sh --version v7`, `run_tsstes_dataset.sh`, `run_ldb_dataset.sh`,
-`run_v10_dataset.sh`, plus the per-sample BCF helpers). Their data paths default to the authors'
-cluster and are overridable from the environment (`DATA_ROOT`, `BCF_DIR`, `BED`, `REF`, `TOKENS`,
-`OUT_DIR`, …). `run_canonical_dataset.sh`, `run_ldb_dataset.sh`, `run_tsstes_dataset.sh` and
-`run_v10_dataset.sh` take `--dry-run`, which prints the resolved commands without running anything.
+`run_v10_dataset.sh`, plus the per-sample BCF helpers). `run_canonical_dataset.sh`,
+`run_ldb_dataset.sh`, `run_tsstes_dataset.sh` and `run_v10_dataset.sh` take `--dry-run`, which
+prints the resolved commands without running anything. Each script's header lists its options.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATA_ROOT` | `<repo>/data/1kgenomes` | input BCFs and output datasets (layout below) |
+| `PYTHON` | `python3` on `PATH` | interpreter of the environment `requirements.txt` is installed in |
+| `PHYLOP_BW`, `CADD_ARROW_DIR` | none | per-base annotations; `--phylop-bw` / `--cadd-arrow-dir` for `run_canonical_dataset.sh` |
+| `DOCKER_IMAGE` | `glm_biotools:1.2.0` | bcftools image for the per-sample BCF steps, built from [`docker_images/glm_biotools/`](../docker_images/glm_biotools/README.md) |
+| `DOCKER_EXTRA_MOUNTS` | none | directories outside `REPO` and `DATA_ROOT` the container must see |
+| `BCF_DIR`, `RAW_BCF_DIR`, `BED`, `REF`, `TOKENS`, `TEST_SAMPLES`, `OUT_DIR`, `WORKERS` | see script | per-run overrides |
+
+Layout under `DATA_ROOT` the runners expect (directories they create are marked *out*):
+
+| Path | Contents |
+|---|---|
+| `raw_bcf/` | 1000 Genomes high-coverage phased panel, one multi-sample BCF per chromosome (chr1–22, X) |
+| `raw_bcf_ld_blocks_eur_intersected/` | *out* of `preprocess/regions/intersect_1kg_ld_blocks.sh` |
+| `raw_bcf_ld_blocks_eur_per_sample/`, `bcf_tss_tes_per_sample/` | *out*: per-sample BCFs restricted to a region set (`make_persample_bcf.sh`, or `--build-bcf`) |
+| `raw_bcf_bed_intersected_hg38_pretrain_canonical_expanded_per_sample/` | per-sample BCFs restricted to the canonical BED, for `run_canonical_dataset.sh` |
+| `<representation>_hf_<version>/`, `diploid_hf_<version>/`, `haplotype_pairs_v10/` | *out*: shards, `assembled/{train,test}`, logs |
 
 Per-base annotations: `cadd_arrow/` converts CADD v1.7 to the Arrow layout `--cadd-arrow-dir`
 expects; `--phylop-bw` takes the UCSC phyloP 100-way bigWig directly.
@@ -80,6 +98,7 @@ expects; `--phylop-bw` takes the UCSC phyloP 100-way bigWig directly.
 | `regions/hg38_pretrain_canonical_expanded.bed` | canonical pretraining regions: 140,099 regions, ~0.94 Gbp |
 | `regions/ld_blocks_eur_grch38.bed` | 1,361 deCODE EUR LD blocks (2.8 Gbp), built from `regions/ld_blocks/raw/` by `regions/build_ld_block_bed.py` |
 | `regions/nested_genome_division/hg38_tss_tes.bed`, `…_v10.bed` | 59,572 per-gene TSS–TES spans on a 128-bp grid; rebuilt by `build_division.py` ([README](regions/nested_genome_division/README.md)) |
+| `regions/nested_genome_division/hg38_tss_tes_v10.genes.tsv` | per-gene annotation of the v10 BED (GENCODE ids, names, types, transcripts, HGNC id); copied into each v10 dataset as `region_annotations.tsv` |
 | `regions/sample_splits/sample_split_20251209_v5/` | the pedigree-aware, population-stratified 1000 Genomes train/test split ([README](regions/sample_splits/sample_split_20251209_v5/README.md)) |
 
 ## Tools

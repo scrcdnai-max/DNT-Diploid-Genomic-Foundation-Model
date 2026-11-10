@@ -10,7 +10,10 @@
 #
 # Requires: bcftools
 #
-# Provenance: preprocess/regions/ld_blocks/PROVENANCE.md, preprocess/regions/ld_blocks/raw/README.md
+# Paths (env-overridable): DATA_ROOT (default <repo>/data/1kgenomes), BCF_DIR (default
+# ${DATA_ROOT}/raw_bcf), OUT_DIR (default ${DATA_ROOT}/raw_bcf_ld_blocks_eur_intersected).
+#
+# Provenance: preprocess/regions/ld_blocks/raw/README.md
 
 set -euo pipefail
 
@@ -20,9 +23,11 @@ echo "Command: $0 $*"
 
 # --- Paths ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BCF_DIR="/opt/hpc/data/sense_data/1kgenomes/raw_bcf"
+REPO="${REPO:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
+DATA_ROOT="${DATA_ROOT:-${REPO}/data/1kgenomes}"
+BCF_DIR="${BCF_DIR:-${DATA_ROOT}/raw_bcf}"
 BED="${SCRIPT_DIR}/ld_blocks_eur_grch38.bed"
-OUT_DIR="/opt/hpc/data/sense_data/1kgenomes/raw_bcf_ld_blocks_eur_intersected_$(date +%Y%m%d)"
+OUT_DIR="${OUT_DIR:-${DATA_ROOT}/raw_bcf_ld_blocks_eur_intersected}"
 
 THREADS=4          # per bcftools process
 MAX_PARALLEL=4      # concurrent bcftools processes (matches the CDS/exon intersect precedent)
